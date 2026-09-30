@@ -1,0 +1,139 @@
+name: Build extension packages
+
+# Manual, unsigned builds for personal use. No store publishing or release keys.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build ${{ matrix.browser }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - browser: chromium
+            build-script: build
+            directory: extension
+          - browser: firefox
+            build-script: build-firefox
+            directory: extension-firefox
+    defaults:
+      run:
+        shell: bash
+    env:
+      CI: 'true'
+      NODE_OPTIONS: --max-old-space-size=4096
+
+    steps:
+      - name: Checkout selected branch
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Install pnpm from package.json
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build extension
+        env:
+          BUILD_SCRIPT: ${{ matrix.build-script }}
+        run: pnpm run "$BUILD_SCRIPT"
+
+      - name: Validate package and record version
+        id: package
+        env:
+          EXTENSION_DIR: ${{ matrix.directory }}
+          BROWSER: ${{ matrix.browser }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { appendFileSync, readFileSync, statSync } from 'node:fs';
+          import { join } from 'node:path';
+
+          const directory = process.env.EXTENSION_DIR;
+          const manifest = JSON.parse(readFileSync(join(directory, 'manifest.json'), 'utf8'));
+          const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
+          if (manifest.manifest_version !== 3 || manifest.version !== pkg.version) {
+            throw new Error('Unexpected manifest version or package version mismatch');
+          }
+          if (!/^[0-9]+(?:\.[0-9]+){0,3}$/.test(manifest.version)) {
+            throw new Error('Invalid extension version');
+          }
+          const background = manifest.background ?? {};
+          if (process.env.BROWSER === 'chromium' && !background.service_worker) {
+            throw new Error('Chromium service worker is missing');
+          }
+          if (process.env.BROWSER === 'firefox' && !background.scripts?.length) {
+            throw new Error('Firefox background scripts are missing');
+          }
+          if (!manifest.content_scripts?.length) {
+            throw new Error('Content scripts are missing');
+          }
+          const requiredFiles = [
+            background.service_worker,
+            ...(background.scripts ?? []),
+            ...manifest.content_scripts.flatMap(script => [...(script.js ?? []), ...(script.css ?? [])]),
+            ...Object.values(manifest.icons ?? {}),
+            ...(manifest.declarative_net_request?.rule_resources ?? []).map(rule => rule.path),
+          ].filter(Boolean);
+          for (const file of new Set(requiredFiles)) {
+            const info = statSync(join(directory, file));
+            if (!info.isFile() || info.size === 0) {
+              throw new Error(`Missing or empty extension file: ${file}`);
+            }
+          }
+          const shortSha = process.env.GITHUB_SHA.slice(0, 7);
+          appendFileSync(process.env.GITHUB_OUTPUT, `version=${manifest.version}\nshort-sha=${shortSha}\n`);
+          console.log(`Validated ${process.env.BROWSER} v${manifest.version} (${shortSha})`);
+          NODE
+
+      # Upload the directory itself: the downloaded ZIP has manifest.json at its
+      # root, rather than a second ZIP or an extra extension/ directory inside.
+      - name: Upload extension ZIP
+        id: artifact
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: BewlyBewly-${{ matrix.browser }}-v${{ steps.package.outputs.version }}-${{ steps.package.outputs.short-sha }}-attempt${{ github.run_attempt }}
+          path: ${{ matrix.directory }}/
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 6
+          include-hidden-files: false
+
+      - name: Write download and installation instructions
+        env:
+          BROWSER: ${{ matrix.browser }}
+          VERSION: ${{ steps.package.outputs.version }}
+          ARTIFACT_URL: ${{ steps.artifact.outputs.artifact-url }}
+          ARTIFACT_DIGEST: ${{ steps.artifact.outputs.artifact-digest }}
+        run: |
+          {
+            printf '## BewlyBewly %s v%s\n\n' "$BROWSER" "$VERSION"
+            printf '[下载扩展 ZIP](%s)（需登录 GitHub，保留 30 天）\n\n' "$ARTIFACT_URL"
+            printf '源码提交：`%s`\n\n' "$GITHUB_SHA"
+            printf '构建环境：Node.js `%s` / pnpm `%s`\n\n' "$(node --version)" "$(pnpm --version)"
+            printf 'ZIP SHA-256：`%s`\n\n' "$ARTIFACT_DIGEST"
+            if [[ "$BROWSER" == 'chromium' ]]; then
+              printf '解压 ZIP，在 `chrome://extensions` 或 `edge://extensions` 开启开发者模式，选择“加载已解压的扩展程序”，选中含 `manifest.json` 的目录。\n\n'
+              printf '这是手动加载的扩展，不会通过原商店条目自动更新。安装前先禁用旧版，避免两个版本同时运行。\n'
+            else
+              printf '这是未签名的 Firefox 测试包。在 `about:debugging#/runtime/this-firefox` 选择“临时载入附加组件”，加载解压后的 `manifest.json`。重启 Firefox 后需重新加载；普通正式版长期安装仍需要 Mozilla 签名。\n\n'
+              printf '保留了上游 Firefox 扩展 ID；不要与原版同时加载。\n'
+            fi
+            printf '\n此流程只构建并检查必要文件，不发布到商店、不创建 Release，也不代表 Bilibili 页面功能已通过实测。\n'
+          } >> "$GITHUB_STEP_SUMMARY"
