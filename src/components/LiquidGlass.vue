@@ -5,6 +5,7 @@ import { settings } from '~/logic'
 import type { GlassSceneLayer } from '~/utils/firefoxGlass'
 import { observeFirefoxGlass, supportsFirefoxGlass } from '~/utils/firefoxGlass'
 import { createFirefoxGlassFilter, type GlassOffsetGroup, supportsFirefoxBackdrop } from '~/utils/firefoxGlassFilter'
+import { observeFirefoxWebGL } from '~/utils/firefoxGlassWebGL'
 import { glassLensDataUrl } from '~/utils/glassLens'
 import { createGlassSceneRenderer } from '~/utils/glassSceneRenderer'
 
@@ -16,9 +17,11 @@ const props = withDefaults(defineProps<{
 }>(), { strength: 28, frost: 0.25 })
 
 const surface = ref<HTMLElement>()
+const webglLayer = ref<HTMLElement>()
+const webglReady = ref(false)
 const size = ref({ width: 0, height: 0 })
 const mapUrl = ref<string>()
-const mode = ref<'svg' | 'firefox-native' | 'firefox' | 'fallback'>('fallback')
+const mode = ref<'svg' | 'firefox-native' | 'firefox-webgl' | 'firefox' | 'fallback'>('fallback')
 const active = ref(true)
 const sceneLayers = shallowRef<GlassSceneLayer[]>([])
 const offsetGroups = shallowRef<GlassOffsetGroup[]>([])
@@ -27,9 +30,11 @@ const reduceTransparency = ref(false)
 const reduceMotion = ref(false)
 const id = `bew-lens-${Math.random().toString(36).slice(2)}`
 const enabled = computed(() => active.value && mode.value !== 'fallback' && !props.disabled && !reduceTransparency.value)
-const refracting = computed(() => enabled.value && (mode.value === 'firefox-native'
-  ? offsetGroups.value.length > 0
-  : !!mapUrl.value && (mode.value !== 'firefox' || sceneLayers.value.length > 0)))
+const refracting = computed(() => enabled.value && (mode.value === 'firefox-webgl'
+  ? webglReady.value
+  : mode.value === 'firefox-native'
+    ? offsetGroups.value.length > 0
+    : !!mapUrl.value && (mode.value !== 'firefox' || sceneLayers.value.length > 0)))
 const strength = computed(() => props.reduced ? props.strength * 0.5 : props.strength)
 let resizeObserver: ResizeObserver | undefined
 let parent: HTMLElement | null = null
@@ -39,11 +44,16 @@ let pointerX = 50
 let pointerY = 0
 const cleanups: (() => void)[] = []
 let stopScene: (() => void) | undefined
+let webgl: ReturnType<typeof observeFirefoxWebGL> | undefined
 
 function updateMap() {
   resizeFrame = 0
   if (!surface.value || !enabled.value)
     return
+  if (mode.value === 'firefox-webgl') {
+    webgl?.update()
+    return
+  }
   const width = surface.value.clientWidth
   const height = surface.value.clientHeight
   if (!width || !height)
@@ -92,23 +102,37 @@ function resetHighlight() {
   updateHighlight()
 }
 
-watch([enabled, mode], ([value]) => {
+watch([enabled, mode, webglLayer], ([value]) => {
   queueResize()
   stopScene?.()
   stopScene = undefined
+  webgl?.dispose()
+  webgl = undefined
   if (value && mode.value === 'firefox' && surface.value)
     stopScene = observeFirefoxGlass(surface.value, sceneRenderer.render)
-})
+  if (value && mode.value === 'firefox-webgl' && surface.value && webglLayer.value) {
+    webgl = observeFirefoxWebGL({
+      element: surface.value,
+      layer: webglLayer.value,
+      options: () => ({ strength: strength.value, frost: props.reduced ? props.frost / 2 : props.frost, reduced: props.reduced }),
+      ready: value => webglReady.value = value,
+      failed: (reason) => {
+        if (surface.value)
+          surface.value.dataset.webglFallback = reason || 'WebGL unavailable'
+        mode.value = supportsFirefoxGlass() ? 'firefox' : 'fallback'
+      },
+    })
+  }
+}, { flush: 'post' })
+watch(() => [props.strength, props.frost, props.reduced], () => webgl?.update())
 onActivated(() => active.value = true)
 onDeactivated(() => active.value = false)
 onMounted(() => {
   const nativeFirefox = supportsFirefoxBackdrop()
   const liveFirefox = supportsFirefoxGlass()
   if (nativeFirefox || liveFirefox) {
-    // Full curved refraction is the default. Keep the compositor approximation
-    // selectable so users can compare optical quality and scrolling latency.
-    cleanups.push(watch(() => settings.value.firefoxPreferScrollSync, (preferSync) => {
-      mode.value = nativeFirefox && (preferSync || !liveFirefox) ? 'firefox-native' : 'firefox'
+    cleanups.push(watch(() => [settings.value.firefoxWebGL, settings.value.firefoxPreferScrollSync], ([useWebGL, preferSync]) => {
+      mode.value = liveFirefox && useWebGL ? 'firefox-webgl' : nativeFirefox && (preferSync || !liveFirefox) ? 'firefox-native' : 'firefox'
     }, { immediate: true }))
   }
   else if (/(?:Chrome|Chromium|Edg)\//.test(navigator.userAgent) && !/(?:EdgiOS|CriOS)\//.test(navigator.userAgent) && CSS.supports('backdrop-filter', 'url("#lens")')) {
@@ -139,6 +163,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   stopScene?.()
+  webgl?.dispose()
   resizeObserver?.disconnect()
   cancelAnimationFrame(resizeFrame)
   cancelAnimationFrame(pointerFrame)
@@ -152,12 +177,12 @@ onBeforeUnmount(() => {
   <div
     ref="surface"
     class="bew-liquid-glass"
-    :class="{ 'is-refracting': refracting, 'is-firefox': refracting && mode === 'firefox', 'is-opaque': disabled || reduceTransparency }"
+    :class="{ 'is-refracting': refracting, 'is-firefox': refracting && mode === 'firefox', 'is-webgl': refracting && mode === 'firefox-webgl', 'is-opaque': disabled || reduceTransparency }"
     :data-refraction="refracting ? mode : 'fallback'"
-    :style="{ '--lens-filter': refracting ? `url(#${id})${mode === 'firefox-native' ? '' : mode === 'firefox' ? ' saturate(1.08)' : ' saturate(1.2)'}` : undefined }"
+    :style="{ '--lens-filter': refracting && mode !== 'firefox-webgl' ? `url(#${id})${mode === 'firefox-native' ? '' : mode === 'firefox' ? ' saturate(1.08)' : ' saturate(1.2)'}` : undefined, '--lens-frost': `${reduced ? frost / 2 : frost}px` }"
     aria-hidden="true"
   >
-    <svg v-if="refracting" class="lens-definitions" width="0" height="0" focusable="false">
+    <svg v-if="refracting && mode !== 'firefox-webgl'" class="lens-definitions" width="0" height="0" focusable="false">
       <defs>
         <filter
           :id="id" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse" color-interpolation-filters="sRGB"
@@ -234,6 +259,7 @@ onBeforeUnmount(() => {
       </span>
     </span>
     <span class="lens-backdrop" />
+    <span v-if="enabled && mode === 'firefox-webgl'" ref="webglLayer" class="lens-webgl" />
     <span class="lens-rim" />
   </div>
 </template>
@@ -259,6 +285,15 @@ onBeforeUnmount(() => {
     position: absolute;
     inset: 0;
     border-radius: inherit;
+  }
+
+  .lens-webgl {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: inherit;
+    background-repeat: no-repeat;
+    pointer-events: none;
   }
 
   .lens-scene-clip {
@@ -333,6 +368,17 @@ onBeforeUnmount(() => {
         rgb(255 255 255 / 12%),
         transparent 62%
       );
+    }
+  }
+
+  &.is-webgl {
+    .lens-backdrop {
+      -webkit-backdrop-filter: blur(var(--lens-frost));
+      backdrop-filter: blur(var(--lens-frost));
+    }
+
+    .lens-rim {
+      background: none;
     }
   }
 }

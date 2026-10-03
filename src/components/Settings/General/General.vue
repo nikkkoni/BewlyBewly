@@ -145,6 +145,13 @@ watch(() => settings.value.language, (newValue) => {
       </SettingsItem>
       <SettingsItem
         v-if="canChooseFirefoxGlass && !settings.disableFrostedGlass"
+        :title="$t('settings.firefox_webgl')"
+        :desc="$t('settings.firefox_webgl_desc')"
+      >
+        <Radio v-model="settings.firefoxWebGL" />
+      </SettingsItem>
+      <SettingsItem
+        v-if="canChooseFirefoxGlass && !settings.disableFrostedGlass && !settings.firefoxWebGL"
         :title="$t('settings.firefox_prefer_scroll_sync')"
         :desc="$t('settings.firefox_prefer_scroll_sync_desc')"
       >

@@ -17,6 +17,7 @@
 - [Meapri/liquid-glass-web](https://github.com/Meapri/liquid-glass-web)：Firefox 使用实时元素图像作为普通 SVG 滤镜的输入。
 - [Amir-Abushanab/liquid-glass-js](https://github.com/Amir-Abushanab/liquid-glass-js)：参考 Firefox 实时背景管线，移植连续圆弧折射剖面和位移贴图蓝通道的边缘高光；完整模式使用三通道轻微色散。
 - [Surdeddd/liquidglassjs](https://github.com/Surdeddd/liquidglassjs)：参考圆角距离场法线、中心中性区域和低模糊材质。没有引入其背景 DOM 克隆后端。
+- [naughtyduk/liquidGL](https://github.com/naughtyduk/liquidGL)：移植 NaughtyDOM 栅格化器，为 WebGL 提供背景纹理。适配了独立缓存、图片缓存上限和图片 CSS 滤镜；没有引入完整运行时或演示素材。
 - [ybouane/liquidglass](https://github.com/ybouane/liquidglass)：研究了其 WebGL 折射、光照及页面内容捕获方案；本扩展没有采用它的页面截图与持续渲染循环。
 
 采用的 MIT 参考实现及完整许可见 [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)。未引入 React 或新的运行时依赖。
@@ -28,8 +29,9 @@
 | 环境 / 设置 | 表现 |
 | --- | --- |
 | 桌面 Chrome / Edge 等 Chromium 浏览器 | SVG 背景折射、轻微色散和高光 |
-| 桌面 Firefox（默认） | 实时元素图像、连续曲面折射、轻微色散和边缘高光；脚本同步背景位置 |
-| Firefox 132+，开启“Firefox 优先滚动同步” | 原生背景滤镜，以分段边缘位移近似折射；由合成器随滚动更新 |
+| 桌面 Firefox（默认） | 实时元素图像与 SVG 曲面折射 |
+| Firefox 开启“Firefox WebGL 折射（试用）” | 共享 GPU 渲染器绘制连续折射边缘；中心保留浏览器原生背景 |
+| Firefox 132+，关闭 WebGL 并开启“Firefox 优先滚动同步” | 原生背景滤镜，以分段边缘位移近似折射；由合成器随滚动更新 |
 | Safari / iOS 浏览器 | 磨砂玻璃回退，**没有背景折射** |
 | 禁用毛玻璃 / 系统减少透明度 | 实色表面，停止折射 |
 | 降低毛玻璃模糊强度 | 降低模糊和折射幅度；Firefox 曲面模式切换为单次位移，省去色散计算 |
@@ -37,23 +39,40 @@
 
 系统减少透明度仅在浏览器提供对应媒体查询时生效。Firefox 当前仍将此查询列为[默认关闭的实验功能](https://developer.mozilla.org/en-US/docs/Mozilla/Firefox/Experimental_features#prefers-reduced-transparency_media_feature)；可以随时使用扩展内的“禁用毛玻璃效果”切换到实色界面。
 
-这是一种 Web 上的折射近似实现。CSS 的 `url()` 语法支持不代表浏览器能处理所有 SVG 背景滤镜，因此 Chromium 和 Firefox 使用不同的渲染路径。Firefox 默认优先曲面观感；在 **设置 → 常规 → 毛玻璃和性能** 中打开 **Firefox 优先滚动同步**，可切换为合成器处理的分段折射。两种模式均在滚动期间保留折射。无法取得有效背景时回退到磨砂。
+这是一种 Web 上的折射近似实现。CSS 的 `url()` 语法支持不代表浏览器能处理所有 SVG 背景滤镜，因此 Chromium 和 Firefox 使用不同的渲染路径。在 **设置 → 常规 → 毛玻璃和性能** 开启 **Firefox WebGL 折射（试用）** 可试用 GPU 边缘折射。该实验在本机未改善性能，因此默认关闭；关闭后保留 SVG 模式，也可选择 **Firefox 优先滚动同步**。各模式均在滚动期间保留折射。WebGL 不可用、绘制错误或上下文丢失时释放 GPU 资源并回退到 SVG。
 
 浅色和深色模式分别调整玻璃着色。自定义壁纸、主题色、禁用阴影设置继续生效；未设置壁纸时显示主题色渐变。
 
 ## 实现
 
-- `src/components/LiquidGlass.vue`：装饰性的玻璃层、浏览器渲染路径选择、尺寸观察、指针高光与资源清理。Firefox 可在连续曲面与原生分段位移之间切换；切换时释放旧路径的背景引用和监听器。滤镜只处理背景层，前景不参与位移。
+- `src/components/LiquidGlass.vue`：装饰性的玻璃层、浏览器渲染路径选择、尺寸观察、指针高光与资源清理。Firefox 可在 SVG 连续曲面、原生分段位移与 WebGL 之间切换；切换时释放旧路径的资源和监听器。折射只处理背景层，前景不参与位移。
 - `src/utils/firefoxGlassFilter.ts`：按圆角距离场生成原生边缘位移分区，限制滤镜图规模；仅在尺寸或启用状态改变时计算。
 - `src/utils/glassLens.ts`：按控件实际宽高与圆角生成距离场；曲面边缘向内采样，中心区域保持中性。
 - `src/utils/curvedGlassLens.ts`：Firefox 连续圆弧剖面，以距离场单位法线确定折射方向；边缘压缩向内平滑衰减，蓝通道保存细窄的方向高光。
+- `src/utils/firefoxGlassWebGL.ts`：共享 WebGL 上下文、背景纹理缓存、视口合成、折射着色器与资源清理。
+- `src/utils/glassWebGLGeometry.ts`：有上限的纹理图集与视口捕获区域。
+- `src/vendor/glassRasterizer.js`：来自 liquidGL 的 DOM 栅格化器，保留上游格式并在声明文件中提供类型边界。
 - `src/utils/firefoxGlass.ts`：背景选择、Shadow DOM 图像注册、滚动位置和裁剪同步，以及引用计数与注销。
 - `src/utils/glassMotion.ts`：所有玻璃表面共享的滚动监听与帧调度。
 - `src/utils/glassGeometry.ts`：同一帧共享背景尺寸、样式与祖先裁剪测量，下一帧重新读取以适应布局变化。
 - `src/utils/glassSceneRenderer.ts`：图层增删交给 Vue，位置变化直接更新对应样式，跳过未变化的属性。
 - `src/styles/liquidGlass.scss`：浅色 / 深色材质、性能与辅助显示回退。
 
-贴图只在尺寸、模式或启用状态改变时生成，并限制分辨率和缓存数量。滚动不截图、不读取远程图片像素，也不逐帧重新生成贴图。曲面模式由 Firefox 绘制实时元素图像，脚本同步其位置；原生模式直接处理合成背景。
+SVG 位移贴图只在尺寸、模式或启用状态改变时生成，并限制分辨率和缓存数量。WebGL 路径的背景纹理按可见区域缓存；SVG 曲面模式由 Firefox 绘制实时元素图像，脚本同步其位置；原生模式直接处理合成背景。
+
+### Firefox WebGL 路径（可选试用）
+
+每个 Shadow Root 共用一个 WebGL 上下文。先把已缓存的背景纹理按当前坐标合成到视口缓冲，再由片段着色器计算圆角距离场、连续曲面折射、轻微色散与边缘高光。只把边缘拆成不超过 256px 的小块放入图集，完成整帧后通过 Canvas 直接显示各块；无需逐控件创建 WebGL 上下文。扩展不调用 `readPixels()`，但浏览器的 Canvas 转换和合成仍可能有开销。
+
+只有曲面边缘由 WebGL 绘制。中心的 GPU 像素透明，保留原生背景和低强度模糊，因此中心内容无需由脚本副本追随滚动。边缘纹理位置仍依赖主线程；WebGL 并不能绕过 Firefox 的 APZ 异步滚动，主线程阻塞时边缘仍可能延迟。
+
+NaughtyDOM 将真实 DOM 的背景、文字和可跨域读取的图片绘制成 Canvas，再上传为纹理。只捕获玻璃能看见的区域并额外保留 256px 缓冲，不为长列表分配整页纹理；普通滚动复用纹理并更新坐标，越过缓冲区或内容改变时重建。图片加载只更新它所在的已捕获区域；主题、字体、布局和页面变化也会使缓存失效。同一帧共享滚动与几何测量，无滚动和布局变化时不运行连续循环。移植时修复了第一张背景图没有进入缓存的问题，并用测试防止重复捕获循环。
+
+图集不超过 400 万像素，视口缓冲及单块背景纹理不超过约 300 万像素；纹理尺寸受 GPU 上限和 4096px 双重限制。可见背景超过总预算时回退。图片缓存最多 384 项。禁用、切换或卸载最后一个表面时，清理监听、显示用 Canvas、纹理、帧缓冲和上下文。
+
+这是试验性的网页纹理重建，不等于浏览器完整合成画面：跨域 iframe、播放中的视频、部分 CSS 遮罩及动画不能完整捕获，首次加载的图片或动态内容可能稍后更新。前景按钮和文字仍由浏览器正常显示。无需截图权限、屏幕捕获授权或修改用户浏览器设置。
+
+本机 Firefox 157 软件合成测试中，两轮 WebGL 的 rAF 间隔中位数约 49ms / 42ms，同一页面 SVG 约 7ms。WebGL 每轮 4 秒滚动重建 10 / 6 次背景，停止后计数稳定，但仍有明显绘制成本。这些数据是主线程回调间隔，不是显示器帧率；普通窗口的较早测试也未表现出改善。该实验没有解决滚动延迟，因此保留为手动开启的比较选项。原生热门页中不能安全上传的内容会触发 SVG 回退。
 
 ### Firefox 原生合成器路径（132+，可选）
 
@@ -65,7 +84,7 @@ Firefox 的 [APZ 异步滚动](https://firefox-source-docs.mozilla.org/performan
 
 原生同步不等于恒定高帧率：绘制仍受显卡、分辨率、页面内容和同时可见的玻璃面积影响。本机无头 Firefox 使用软件 WebRender，完整滤镜的绘制成本仍较高；普通硬件加速窗口的帧率尚未测量。
 
-### Firefox 连续曲面路径（默认）
+### Firefox SVG 连续曲面路径（默认与回退）
 
 Firefox 用 `document.mozSetImageElement()` 显式注册扩展 Shadow DOM 内的背景，然后将 `-moz-element()` 作为独立装饰层的背景图。普通 `filter: url(...)` 负责折射，前景文字和按钮不进入滤镜。
 
@@ -87,7 +106,9 @@ Firefox 这条路线重绘所选页面区域，而非读取浏览器完整合成
 
 构建：`pnpm build`。类型检查：`pnpm typecheck --noEmit`。测试：`pnpm exec vitest run`。
 
-镜头数学测试覆盖边缘位移、中心中性、对称性、宽胶囊比例、贴图内存上限和非法尺寸。浏览器验证使用实际扩展的 Shadow DOM：在同一控件后放置网格，仅切换位移强度，比较截图以确认边缘像素确实发生形变。
+本次 10 个测试文件共 32 项测试通过，Firefox 与 Chromium 生产构建、类型检查和修改文件 ESLint 通过。WebGL 在实际 Firefox 扩展中检查了顶栏、Dock、两个切换控件、设置和对话框：读取 GPU 图集，比较折射开启与归零后的像素，所有表面均有边缘形变且中心透明；另外检查了实际画面、滚动、深浅色、窄窗口、三轮模式切换、禁用与恢复，以及上下文丢失后的 SVG 回退。栅格化器测试覆盖首张背景图片的缓存复用，避免反复捕获。
+
+镜头数学测试覆盖边缘位移、中心中性、对称性、宽胶囊比例、贴图内存上限和非法尺寸。WebGL 几何测试覆盖图集互不重叠、GPU 尺寸与内存限制、长列表只捕获视口附近。浏览器验证使用实际扩展的 Shadow DOM：在同一控件后放置网格，仅切换位移强度，比较截图以确认边缘像素确实发生形变。
 
 Firefox 157.0 已在实际扩展中检查浅色 / 深色、搜索、设置、对话框、页面切换、原生页面、500px / 768px / 1440px 窗口及性能开关。本机 Firefox 最小窗口宽度为 500px；Chromium 另验证了 390px。Safari 仍需在对应真实浏览器上验证。
 

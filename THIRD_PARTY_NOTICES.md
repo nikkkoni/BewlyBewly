@@ -123,3 +123,50 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+## naughtyduk/liquidGL
+
+Source: https://github.com/naughtyduk/liquidGL/tree/88f681ab7035fd55b04f63edff1841e32c4199e9
+
+The NaughtyDOM rasterizer is bundled with an isolated cache, bounded image storage and image filter support. The WebGL renderer and scroll cache are implemented for BewlyBewly; upstream demo assets and the full runtime are not bundled.
+
+MIT License
+
+Copyright (c) NaughtyDuk
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+Exclusion of Assets
+
+The MIT License above applies only to the source code of this project (the
+contents of the `scripts/` and `package/` directories). It does NOT apply to
+the contents of the `assets/` directory (including but not limited to the
+audio files under `assets/audio/` and `assets/fonts/`), which are provided
+for demonstration purposes only and may not be copied, redistributed, or
+reused outside of this repository without separate permission from their
+respective rights holders.
+
+---
+
+Support Open Source
+
+If this project has been useful to you, please consider supporting its
+continued open-source development at https://liquidgl.naughtyduk.com
