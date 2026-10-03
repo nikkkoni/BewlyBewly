@@ -198,14 +198,14 @@ function toggleTabContentLoading(loading: boolean) {
       >
         <section
           v-if="!(!settings.alwaysShowTabsOnHomePage && currentTabs.length === 1)"
-          style="backdrop-filter: var(--bew-filter-glass-1)"
-          bg="$bew-elevated" p-1
+          class="bew-liquid-tabs"
+          p-1
           w="[calc(100vw-280px)]" max-w="fit"
           h-38px rounded-full
           text="sm"
-          shadow="[var(--bew-shadow-1),var(--bew-shadow-edge-glow-1)]"
-          box-border border="1 $bew-border-color"
+          box-border border="1 transparent"
         >
+          <LiquidGlass :disabled="settings.disableFrostedGlass" :reduced="settings.reduceFrostedGlassBlur" :strength="18" />
           <OverlayScrollbarsComponent
             class="home-tabs-inside"
             element="div" defer
@@ -240,12 +240,12 @@ function toggleTabContentLoading(loading: boolean) {
 
         <div
           v-if="settings.enableGridLayoutSwitcher"
-          style="backdrop-filter: var(--bew-filter-glass-1)"
-          flex="~ gap-1 shrink-0" p-1 h-38px bg="$bew-elevated" transform-gpu
+          class="bew-liquid-tabs"
+          flex="~ gap-1 shrink-0" p-1 h-38px transform-gpu
           ml-auto rounded-full
-          shadow="[var(--bew-shadow-1),var(--bew-shadow-edge-glow-1)]"
-          box-border border="1 $bew-border-color"
+          box-border border="1 transparent"
         >
+          <LiquidGlass :disabled="settings.disableFrostedGlass" :reduced="settings.reduceFrostedGlassBlur" :strength="18" />
           <div
             v-for="icon in gridLayoutIcons" :key="icon.value"
             :class="{ 'grid-layout-item-activated': gridLayout.home === icon.value }"
@@ -277,6 +277,15 @@ function toggleTabContentLoading(loading: boolean) {
 </template>
 
 <style scoped lang="scss">
+.bew-liquid-tabs {
+  position: relative;
+
+  > :not(.bew-liquid-glass) {
+    position: relative;
+    z-index: 1;
+  }
+}
+
 .bg-enter-active,
 .bg-leave-active {
   --uno: "duration-1000 ease-in-out";

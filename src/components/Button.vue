@@ -52,8 +52,8 @@ function handleClick(evt: MouseEvent) {
 
 <style lang="scss" scoped>
 .b-button {
-  --b-button-color: var(--bew-content-solid);
-  --b-button-color-hover: var(--bew-content-solid-hover);
+  --b-button-color: var(--bew-glass-card);
+  --b-button-color-hover: var(--bew-glass-hover);
   --b-button-text-color: var(--bew-text-1);
   --b-button-radius: var(--bew-radius);
   --b-button-padding: 14px;
@@ -78,8 +78,20 @@ function handleClick(evt: MouseEvent) {
     --uno: "text-size-$b-button-icon-size";
   }
 
-  // &--type-default {
-  // }
+  &--type-default:not(.b-button--custom-color),
+  &--type-primary:not(.b-button--custom-color) {
+    --b-button-border-width: 1px;
+    --b-button-border-color: var(--bew-glass-border);
+    --b-button-shadow: var(--bew-shadow-edge-glow-1), var(--bew-shadow-1);
+    --b-button-shadow-hover: var(--bew-shadow-edge-glow-1), var(--bew-shadow-2);
+    background-image: var(--bew-glass-sheen);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+  }
 
   &--type-primary {
     --b-button-color: var(--bew-theme-color);

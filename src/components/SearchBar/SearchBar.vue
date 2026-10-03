@@ -16,6 +16,7 @@ import {
 } from './searchHistoryProvider'
 
 defineProps<{
+  embedded?: boolean
   darkenOnFocus?: boolean
   blurredOnFocus?: boolean
   focusedCharacter?: string
@@ -186,7 +187,10 @@ async function handleClearSearchHistory() {
 </script>
 
 <template>
-  <div id="search-wrap" w="full" max-w="550px" h-46px pos="relative">
+  <div
+    id="search-wrap" :class="{ 'search-embedded': embedded }" w="full" max-w="550px" h-46px
+    pos="relative"
+  >
     <div
       v-if="!darkenOnFocus && isFocus"
       pos="fixed top-0 left-0"
@@ -215,6 +219,7 @@ async function handleClearSearchHistory() {
       flex="~ items-center" pos="relative"
       h-inherit
     >
+      <LiquidGlass v-if="!embedded" :disabled="settings.disableFrostedGlass" :reduced="settings.reduceFrostedGlassBlur" :strength="22" />
       <Transition name="focus-character">
         <img
           v-show="focusedCharacter && isFocus" :src="focusedCharacter"
@@ -367,8 +372,8 @@ async function handleClearSearchHistory() {
 
 #search-wrap {
   --b-search-bar-normal-color: var(--bew-content);
-  --b-search-bar-hover-color: var(--bew-content-hover);
-  --b-search-bar-focus-color: var(--bew-content-hover);
+  --b-search-bar-hover-color: var(--bew-glass-hover);
+  --b-search-bar-focus-color: var(--bew-elevated);
 
   --b-search-bar-normal-icon-color: var(--bew-text-1);
   --b-search-bar-hover-icon-color: var(--bew-theme-color);
@@ -381,28 +386,53 @@ async function handleClearSearchHistory() {
   @mixin card-content {
     --uno: "text-base outline-none w-full bg-$b-search-bar-normal-color transform-gpu border-1 border-$bew-border-color";
     --uno: "shadow-[var(--bew-shadow-2),var(--bew-shadow-edge-glow-1)]";
+    background-image: var(--bew-glass-sheen);
+    border-color: var(--bew-glass-border);
+    -webkit-backdrop-filter: var(--bew-filter-glass-1);
     backdrop-filter: var(--bew-filter-glass-1);
   }
 
   .search-bar {
+    border-radius: 24px;
+
     input {
-      @include card-content;
-
-      &:hover {
-        --uno: "bg-$b-search-bar-hover-color";
-      }
-
-      &:focus {
-        --uno: "bg-$b-search-bar-focus-color";
-      }
+      position: relative;
+      width: 100%;
+      min-width: 0;
+      outline: none;
+      background: transparent;
+      border-color: transparent;
     }
 
     &.focus input {
-      --uno: "border-$bew-theme-color rounded-$bew-radius";
+      --uno: "border-$bew-theme-color rounded-24px";
       box-shadow:
-        0 0 0 2px var(--bew-theme-color),
-        0 6px 16px var(--bew-theme-color-40),
-        inset 0 0 6px var(--bew-theme-color-30);
+        0 0 0 2px var(--bew-theme-color-60),
+        var(--bew-shadow-2),
+        var(--bew-shadow-edge-glow-1);
+    }
+  }
+
+  // The top bar supplies one shared material. Its input needs no second lens.
+  &.search-embedded {
+    height: 36px;
+
+    .search-bar {
+      border-radius: 10px;
+      background: var(--bew-fill-1);
+
+      input {
+        padding-block: 0;
+        padding-left: 14px;
+        border-radius: inherit;
+        border-color: transparent;
+        box-shadow: none;
+      }
+
+      &.focus input {
+        border-color: var(--bew-theme-color);
+        box-shadow: 0 0 0 1px var(--bew-theme-color);
+      }
     }
   }
 

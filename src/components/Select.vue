@@ -86,6 +86,7 @@ function onMouseEnter() {
     <Transition name="dropdown">
       <div
         v-if="showOptions"
+        class="bew-glass-surface"
         style="backdrop-filter: var(--bew-filter-glass-1)"
         pos="absolute" bg="$bew-elevated" shadow="$bew-shadow-2" p="2"
         m="t-2"

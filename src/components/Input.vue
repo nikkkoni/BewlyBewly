@@ -40,6 +40,7 @@ defineExpose({ focus })
 
 <template>
   <div
+    class="bew-input"
     :style="{ height, padding }"
     focus-within:ring="2px $bew-theme-color"
     p="x-4"
@@ -74,6 +75,16 @@ defineExpose({ focus })
 </template>
 
 <style lang="scss" scoped>
+.bew-input {
+  border: 1px solid var(--bew-glass-border);
+  background-image: var(--bew-glass-sheen);
+  box-shadow: var(--bew-shadow-edge-glow-1);
+
+  input {
+    min-width: 0;
+  }
+}
+
 .prefix,
 .suffix {
   --uno: "flex items-center";

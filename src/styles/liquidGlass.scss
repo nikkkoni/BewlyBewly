@@ -1,0 +1,123 @@
+// Shared material tokens work in the extension's shadow root and native pages.
+:host,
+:root {
+  --bew-radius: 16px;
+  --bew-content-opacity: 0.72;
+  --bew-lens-tint: rgb(255 255 255 / 10%);
+  --bew-lens-panel-tint: rgb(255 255 255 / 76%);
+  --bew-filter-glass-1: blur(24px) saturate(165%);
+  --bew-filter-glass-2: blur(36px) saturate(155%);
+  --bew-glass-border: rgb(255 255 255 / 72%);
+  --bew-glass-sheen: linear-gradient(135deg, rgb(255 255 255 / 46%), rgb(255 255 255 / 6%) 42%, rgb(255 255 255 / 20%));
+  --bew-glass-ambient: radial-gradient(ellipse at 8% 8%, var(--bew-theme-color-20), transparent 52%),
+    radial-gradient(ellipse at 90% 20%, rgb(180 166 244 / 19%), transparent 48%),
+    radial-gradient(ellipse at 45% 95%, rgb(144 217 212 / 16%), transparent 50%);
+  --bew-glass-card: color-mix(in srgb, var(--bew-content-solid) 76%, transparent);
+  --bew-glass-hover: color-mix(in srgb, var(--bew-content-solid) 88%, transparent);
+  --bew-glass-motion: 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --bew-shadow-1: 0 4px 14px -6px rgb(38 60 92 / 14%);
+  --bew-shadow-2: 0 10px 32px -12px rgb(38 60 92 / 22%);
+  --bew-shadow-3: 0 18px 48px -16px rgb(38 60 92 / 24%);
+  --bew-shadow-4: 0 28px 80px -20px rgb(38 60 92 / 28%);
+  --bew-shadow-edge-glow-1: inset 0 1px 0 rgb(255 255 255 / 85%), inset 1px 0 0 rgb(255 255 255 / 35%),
+    inset 0 -1px 0 rgb(255 255 255 / 22%);
+  --bew-shadow-edge-glow-2: inset 0 1px 0 rgb(255 255 255 / 90%), inset 1px 0 0 rgb(255 255 255 / 42%),
+    inset 0 -1px 0 rgb(255 255 255 / 28%);
+}
+
+:host(.dark),
+:root.dark {
+  --bew-lens-tint: rgb(18 24 34 / 20%);
+  --bew-lens-panel-tint: rgb(18 22 30 / 80%);
+  --bew-glass-border: rgb(255 255 255 / 16%);
+  --bew-glass-sheen: linear-gradient(135deg, rgb(255 255 255 / 10%), transparent 42%, rgb(255 255 255 / 3%));
+  --bew-glass-ambient: radial-gradient(ellipse at 8% 8%, var(--bew-theme-color-20), transparent 52%),
+    radial-gradient(ellipse at 90% 20%, rgb(113 83 177 / 16%), transparent 48%),
+    radial-gradient(ellipse at 45% 95%, rgb(46 116 120 / 12%), transparent 50%);
+  --bew-shadow-1: 0 4px 14px -6px rgb(0 0 0 / 32%);
+  --bew-shadow-2: 0 10px 32px -12px rgb(0 0 0 / 44%);
+  --bew-shadow-3: 0 18px 48px -16px rgb(0 0 0 / 48%);
+  --bew-shadow-4: 0 28px 80px -20px rgb(0 0 0 / 56%);
+  --bew-shadow-edge-glow-1: inset 0 1px 0 rgb(255 255 255 / 20%), inset 0 -1px 0 rgb(255 255 255 / 5%);
+  --bew-shadow-edge-glow-2: inset 0 1px 0 rgb(255 255 255 / 26%), inset 1px 0 0 rgb(255 255 255 / 8%);
+}
+
+// Both preferences may be enabled: disabling glass must always win.
+:host(.reduce-frosted-glass-blur:not(.disable-frosted-glass)),
+:root.reduce-frosted-glass-blur:not(.disable-frosted-glass) {
+  --bew-filter-glass-1: blur(10px) saturate(140%);
+  --bew-filter-glass-2: blur(16px) saturate(140%);
+}
+
+:host(.disable-frosted-glass),
+:root.disable-frosted-glass {
+  --bew-content-opacity: 1;
+  --bew-filter-glass-1: none;
+  --bew-filter-glass-2: none;
+  --bew-glass-sheen: none;
+  --bew-glass-ambient: none;
+  --bew-glass-card: var(--bew-content-solid);
+  --bew-glass-hover: var(--bew-content-solid-hover);
+  --bew-glass-border: var(--bew-border-color);
+  --bew-shadow-edge-glow-1: 0 0 0 transparent;
+  --bew-shadow-edge-glow-2: 0 0 0 transparent;
+}
+
+:host(.disable-shadow),
+:root.disable-shadow {
+  --bew-shadow-1: 0 0 0 transparent;
+  --bew-shadow-2: 0 0 0 transparent;
+  --bew-shadow-3: 0 0 0 transparent;
+  --bew-shadow-4: 0 0 0 transparent;
+}
+
+// Keep content readable when translucency is unavailable or unwanted.
+@mixin opaque-material {
+  :host,
+  :root,
+  :host(.dark),
+  :root.dark,
+  :host(.reduce-frosted-glass-blur),
+  :root.reduce-frosted-glass-blur,
+  :host(.reduce-frosted-glass-blur:not(.disable-frosted-glass)),
+  :root.reduce-frosted-glass-blur:not(.disable-frosted-glass) {
+    --bew-content-opacity: 1;
+    --bew-filter-glass-1: none;
+    --bew-filter-glass-2: none;
+    --bew-glass-card: var(--bew-content-solid);
+    --bew-glass-hover: var(--bew-content-solid-hover);
+    --bew-glass-sheen: none;
+    --bew-glass-ambient: none;
+  }
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  @include opaque-material;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  @include opaque-material;
+}
+
+.bewly-wrapper .bew-glass-surface {
+  background-image: var(--bew-glass-sheen);
+  border-color: var(--bew-glass-border);
+  -webkit-backdrop-filter: var(--bew-filter-glass-1);
+  backdrop-filter: var(--bew-filter-glass-1);
+}
+
+.bewly-wrapper :is(button, a, input, [tabindex]):focus-visible {
+  outline: 2px solid var(--bew-theme-color);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bewly-wrapper *,
+  .bewly-wrapper *::before,
+  .bewly-wrapper *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -487,41 +487,18 @@ defineExpose({
     <header
       v-if="showTopBar"
       ref="headerTarget"
+      class="liquid-top-bar"
       w="full" transition="all 300 ease-in-out"
       :class="{ 'hide': hideTopBar, 'force-white-icon': forceWhiteIcon }"
       :style="{ position: isTopBarFixed ? 'fixed' : 'absolute' }"
     >
+      <LiquidGlass class="top-bar-material" :disabled="settings.disableFrostedGlass" :reduced="settings.reduceFrostedGlassBlur" :strength="18" />
       <main
         max-w="$bew-page-max-width"
         flex="~ justify-between items-center gap-4"
         p="x-12" m-auto
         h="$bew-top-bar-height"
       >
-        <!-- Top bar mask -->
-        <div
-          v-if="!reachTop"
-          style="
-            mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1), rgba(0, 0, 0, 1) 24px, rgba(0, 0, 0, 0.9) 44px, transparent);
-          "
-          :style="{ backdropFilter: settings.disableFrostedGlass ? 'none' : 'blur(12px)' }"
-          pos="absolute top-0 left-0" w-full h="[calc(var(--bew-top-bar-height)+16px)]"
-          pointer-events-none transform-gpu
-        />
-
-        <div
-          pos="absolute top-0 left-0" w-full
-          pointer-events-none opacity-100 duration-300
-          :style="{
-            background: `linear-gradient(to bottom, ${
-              forceWhiteIcon
-                ? 'rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.4) calc(var(--bew-top-bar-height) / 2)'
-                : 'color-mix(in oklab, var(--bew-bg), transparent 20%), color-mix(in oklab, var(--bew-bg), transparent 40%) calc(var(--bew-top-bar-height) / 2)'
-            }, transparent)`,
-            opacity: reachTop ? 0.8 : 1,
-            height: reachTop ? 'var(--bew-top-bar-height)' : 'calc(var(--bew-top-bar-height) + 20px)',
-          }"
-        />
-
         <!-- Top bar theme color gradient -->
         <Transition name="fade">
           <div
@@ -554,7 +531,7 @@ defineExpose({
                 p-id="1477" width="36" height="36"
                 :style="{
                   fill: forceWhiteIcon ? 'white' : 'var(--bew-theme-color)',
-                  filter: forceWhiteIcon ? 'drop-shadow(0 0 4px rgba(0, 0, 0, 0.6))' : 'drop-shadow(0 0 4px var(--bew-theme-color-60))',
+                  filter: forceWhiteIcon ? 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3))' : 'none',
                 }"
                 group-hover:fill="!white"
                 group-hover:filter="!none"
@@ -582,6 +559,7 @@ defineExpose({
             <SearchBar
               v-if="showSearchBar"
               class="search-bar"
+              embedded
               :style="{
                 '--b-search-bar-normal-color': settings.disableFrostedGlass ? 'var(--bew-elevated)' : 'color-mix(in oklab, var(--bew-elevated-solid), transparent 60%)',
                 '--b-search-bar-hover-color': 'var(--bew-elevated-hover)',
@@ -806,7 +784,6 @@ defineExpose({
                   <a
                     class="upload"
                     :class="{ 'white-icon': forceWhiteIcon }"
-                    style="backdrop-filter: var(--bew-filter-glass-1);"
                     href="https://member.bilibili.com/platform/upload/video/frame"
                     target="_blank"
                     :title="$t('topbar.upload')"
@@ -938,6 +915,33 @@ defineExpose({
 </template>
 
 <style lang="scss" scoped>
+.liquid-top-bar {
+  .top-bar-material {
+    inset: 0;
+    border-radius: 0;
+    box-shadow: none;
+
+    :deep(.lens-rim) {
+      border-width: 0 0 1px;
+      border-color: var(--bew-border-color);
+      box-shadow: none;
+      background: none;
+    }
+  }
+
+  &.force-white-icon .top-bar-material {
+    --bew-lens-tint: rgb(20 24 34 / 40%);
+    --bew-content: rgb(20 24 34 / var(--bew-content-opacity));
+  }
+
+  @media (max-width: 640px) {
+    > main {
+      padding-inline: 20px;
+      gap: 8px;
+    }
+  }
+}
+
 .top-bar-enter-active,
 .top-bar-leave-active {
   transition: all 0.5s ease;
@@ -982,13 +986,10 @@ defineExpose({
   transform: translateY(-100%);
 }
 
-:deep(.search-bar) {
-  input:not(:focus, :focus-within) {
-    --uno: "!border-$bew-border-color !shadow-$bew-shadow-1";
-  }
-}
-
 .bew-popover {
+  background-image: var(--bew-glass-sheen);
+  border-color: var(--bew-glass-border);
+  -webkit-backdrop-filter: var(--bew-filter-glass-1);
   --uno: "absolute";
   --uno: "overflow-hidden";
   --uno: "after:content-empty";
