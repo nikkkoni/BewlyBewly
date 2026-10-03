@@ -5,15 +5,25 @@
   --bew-content-opacity: 0.72;
   --bew-lens-tint: rgb(255 255 255 / 10%);
   --bew-lens-panel-tint: rgb(255 255 255 / 76%);
-  --bew-filter-glass-1: blur(24px) saturate(165%);
-  --bew-filter-glass-2: blur(36px) saturate(155%);
+  --bew-filter-glass-1: blur(12px) saturate(145%);
+  --bew-filter-glass-2: blur(18px) saturate(140%);
   --bew-glass-border: rgb(255 255 255 / 72%);
   --bew-glass-sheen: linear-gradient(135deg, rgb(255 255 255 / 46%), rgb(255 255 255 / 6%) 42%, rgb(255 255 255 / 20%));
   --bew-glass-ambient: radial-gradient(ellipse at 8% 8%, var(--bew-theme-color-20), transparent 52%),
     radial-gradient(ellipse at 90% 20%, rgb(180 166 244 / 19%), transparent 48%),
     radial-gradient(ellipse at 45% 95%, rgb(144 217 212 / 16%), transparent 50%);
-  --bew-glass-card: color-mix(in srgb, var(--bew-content-solid) 76%, transparent);
-  --bew-glass-hover: color-mix(in srgb, var(--bew-content-solid) 88%, transparent);
+  --bew-glass-card: color-mix(in srgb, var(--bew-content-solid) 58%, transparent);
+  --bew-glass-hover: color-mix(in srgb, var(--bew-content-solid) 72%, transparent);
+  --bew-glass-panel: color-mix(in srgb, var(--bew-content-solid) 64%, transparent);
+  --bew-glass-control: color-mix(in srgb, var(--bew-content-solid) 48%, transparent);
+  --bew-glass-control-edge: inset 0 1px 0 rgb(255 255 255 / 78%), inset 0 -1px 0 rgb(38 60 92 / 10%);
+  --bew-glass-rim: linear-gradient(
+    145deg,
+    rgb(255 255 255 / 68%),
+    transparent 38%,
+    transparent 68%,
+    rgb(255 255 255 / 20%)
+  );
   --bew-glass-motion: 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
   --bew-shadow-1: 0 4px 14px -6px rgb(38 60 92 / 14%);
   --bew-shadow-2: 0 10px 32px -12px rgb(38 60 92 / 22%);
@@ -31,6 +41,14 @@
   --bew-lens-panel-tint: rgb(18 22 30 / 80%);
   --bew-glass-border: rgb(255 255 255 / 16%);
   --bew-glass-sheen: linear-gradient(135deg, rgb(255 255 255 / 10%), transparent 42%, rgb(255 255 255 / 3%));
+  --bew-glass-control-edge: inset 0 1px 0 rgb(255 255 255 / 22%), inset 0 -1px 0 rgb(0 0 0 / 24%);
+  --bew-glass-rim: linear-gradient(
+    145deg,
+    rgb(255 255 255 / 24%),
+    transparent 38%,
+    transparent 68%,
+    rgb(255 255 255 / 7%)
+  );
   --bew-glass-ambient: radial-gradient(ellipse at 8% 8%, var(--bew-theme-color-20), transparent 52%),
     radial-gradient(ellipse at 90% 20%, rgb(113 83 177 / 16%), transparent 48%),
     radial-gradient(ellipse at 45% 95%, rgb(46 116 120 / 12%), transparent 50%);
@@ -58,6 +76,10 @@
   --bew-glass-ambient: none;
   --bew-glass-card: var(--bew-content-solid);
   --bew-glass-hover: var(--bew-content-solid-hover);
+  --bew-glass-panel: var(--bew-content-solid);
+  --bew-glass-control: var(--bew-content-solid);
+  --bew-glass-rim: none;
+  --bew-glass-control-edge: none;
   --bew-glass-border: var(--bew-border-color);
   --bew-shadow-edge-glow-1: 0 0 0 transparent;
   --bew-shadow-edge-glow-2: 0 0 0 transparent;
@@ -65,6 +87,7 @@
 
 :host(.disable-shadow),
 :root.disable-shadow {
+  --bew-glass-control-edge: none;
   --bew-shadow-1: 0 0 0 transparent;
   --bew-shadow-2: 0 0 0 transparent;
   --bew-shadow-3: 0 0 0 transparent;
@@ -86,6 +109,10 @@
     --bew-filter-glass-2: none;
     --bew-glass-card: var(--bew-content-solid);
     --bew-glass-hover: var(--bew-content-solid-hover);
+    --bew-glass-panel: var(--bew-content-solid);
+    --bew-glass-control: var(--bew-content-solid);
+    --bew-glass-rim: none;
+    --bew-glass-control-edge: none;
     --bew-glass-sheen: none;
     --bew-glass-ambient: none;
   }
@@ -100,10 +127,50 @@
 }
 
 .bewly-wrapper .bew-glass-surface {
-  background-image: var(--bew-glass-sheen);
-  border-color: var(--bew-glass-border);
+  background-color: var(--bew-glass-panel);
+  background-image: var(--bew-glass-rim);
+  border: 1px solid var(--bew-glass-border);
+  box-shadow: var(--bew-glass-control-edge), var(--bew-shadow-2);
   -webkit-backdrop-filter: var(--bew-filter-glass-1);
   backdrop-filter: var(--bew-filter-glass-1);
+}
+
+// Nested controls inherit their panel's glass instead of adding a blur per row.
+.bewly-wrapper .bew-glass-control {
+  background-color: var(--bew-glass-control);
+  background-image: var(--bew-glass-sheen);
+  border: 1px solid var(--bew-glass-border);
+  box-shadow: var(--bew-glass-control-edge);
+}
+
+.bewly-wrapper .bew-glass-surface > header {
+  background: var(--bew-glass-panel);
+  backdrop-filter: none;
+}
+
+.bewly-wrapper .bew-refracting-popup {
+  isolation: isolate;
+  background: transparent;
+  backdrop-filter: none;
+
+  > .popup-material {
+    --bew-lens-tint: var(--bew-glass-panel);
+    z-index: -1;
+  }
+}
+
+// Firefox's shared motion observer sets this only for an active gesture.
+// Preserve transparency and highlights, without re-filtering moving content.
+:host([data-glass-scrolling]),
+:root[data-glass-scrolling] {
+  --bew-filter-glass-1: none;
+  --bew-filter-glass-2: none;
+
+  .bewly-wrapper .bew-glass-surface,
+  .bewly-wrapper .lens-backdrop,
+  .bewly-wrapper #settings-window header > div {
+    backdrop-filter: none !important;
+  }
 }
 
 .bewly-wrapper :is(button, a, input, [tabindex]):focus-visible {

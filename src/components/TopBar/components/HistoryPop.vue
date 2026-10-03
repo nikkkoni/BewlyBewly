@@ -181,7 +181,7 @@ function deleteHistoryItem(index: number, historyItem: HistoryItem) {
 <template>
   <div
     ref="historysWrap"
-    style="backdrop-filter: var(--bew-filter-glass-1);"
+    class="bew-glass-surface"
     h="[calc(100vh-100px)]" max-h-500px important-overflow-y-overlay
     bg="$bew-elevated"
     w="380px"
@@ -192,7 +192,7 @@ function deleteHistoryItem(index: number, historyItem: HistoryItem) {
   >
     <!-- top bar -->
     <header
-      style="backdrop-filter: var(--bew-filter-glass-1);"
+
       flex="~"
       justify="between"
       p="y-4 x-6"

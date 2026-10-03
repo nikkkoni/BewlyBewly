@@ -162,10 +162,7 @@ function handleConfirm() {
             </div>
 
             <div
-              style="
-                backdrop-filter: var(--bew-filter-glass-1);
-                box-shadow: var(--bew-shadow-edge-glow-1), var(--bew-shadow-1);
-              "
+              class="bew-glass-control"
               text="!16px hover:$bew-theme-color" w="32px" h="32px"
               flex="~ items-center justify-center shrink-0"
               bg="$bew-fill-1 hover:$bew-theme-color-30"

@@ -54,6 +54,7 @@ function onMouseEnter() {
     @mouseenter="onMouseEnter"
   >
     <div
+      class="bew-glass-control"
       p="x-4 y-2"
       bg="$bew-fill-1"
       rounded="$bew-radius"
@@ -87,7 +88,6 @@ function onMouseEnter() {
       <div
         v-if="showOptions"
         class="bew-glass-surface"
-        style="backdrop-filter: var(--bew-filter-glass-1)"
         pos="absolute" bg="$bew-elevated" shadow="$bew-shadow-2" p="2"
         m="t-2"
         rounded="$bew-radius" z="1" flex="~ col gap-1"

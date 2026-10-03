@@ -118,7 +118,7 @@ function getLvIcon(level: number, isSigma: boolean = false): string {
 
 <template>
   <div
-    style="backdrop-filter: var(--bew-filter-glass-1);"
+    class="bew-glass-surface"
     p-4 rounded="$bew-radius" w-300px z--1 bg="$bew-elevated-alt"
     border="1 $bew-border-color"
     shadow="[var(--bew-shadow-3),var(--bew-shadow-edge-glow-1)]"

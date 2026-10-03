@@ -9,6 +9,8 @@ import { AppPage } from '~/enums/appEnums'
 import { settings } from '~/logic'
 import { type DockItem, useMainStore } from '~/stores/mainStore'
 import { useSettingsStore } from '~/stores/settingsStore'
+import { supportsFirefoxGlass } from '~/utils/firefoxGlass'
+import { observeGlassMotion } from '~/utils/glassMotion'
 import { isHomePage, isInIframe, isNotificationPage, isVideoOrBangumiPage, openLinkToNewTab, queryDomUntilFound, scrollToTop } from '~/utils/main'
 import emitter from '~/utils/mitt'
 
@@ -154,7 +156,14 @@ watch([() => showTopBar.value, () => activatedPage.value], () => {
 // Setup necessary settings watchers
 setupNecessarySettingsWatchers()
 
+let stopGlassMotion: (() => void) | undefined
+onBeforeUnmount(() => stopGlassMotion?.())
+
 onMounted(() => {
+  // Also pause CSS glass on layouts that hide every refracting surface.
+  const root = mainAppRef.value?.getRootNode()
+  if (supportsFirefoxGlass() && root instanceof ShadowRoot)
+    stopGlassMotion = observeGlassMotion(root, () => {})
   window.dispatchEvent(new CustomEvent(BEWLY_MOUNTED))
 
   if (isHomePage()) {

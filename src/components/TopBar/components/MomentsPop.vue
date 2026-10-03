@@ -277,7 +277,7 @@ defineExpose({
 <template>
   <div
     ref="momentsWrap"
-    style="backdrop-filter: var(--bew-filter-glass-1);" h="[calc(100vh-100px)]" max-h-500px
+    class="bew-glass-surface" h="[calc(100vh-100px)]" max-h-500px
     important-overflow-y-overlay
     bg="$bew-elevated"
     w="380px"
@@ -288,7 +288,7 @@ defineExpose({
   >
     <!-- top bar -->
     <header
-      style="backdrop-filter: var(--bew-filter-glass-1);"
+
       flex="~ justify-between items-center"
       p="y-4 x-6"
       pos="sticky top-0 left-0"

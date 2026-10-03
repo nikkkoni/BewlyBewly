@@ -23,7 +23,8 @@ function scrollingScene() {
     unobserve() {}
     disconnect() {}
   })
-  Object.defineProperty(document, 'mozSetImageElement', { value: vi.fn(), configurable: true })
+  const register = vi.fn()
+  Object.defineProperty(document, 'mozSetImageElement', { value: register, configurable: true })
   const host = document.createElement('div')
   document.body.append(host)
   const root = host.attachShadow({ mode: 'open' })
@@ -45,10 +46,39 @@ function scrollingScene() {
   tick()
   publish.mockClear()
   vi.mocked(source.getBoundingClientRect).mockClear()
-  return { root, scroller, source, surface, publish, stop, tick }
+  return { root, scroller, source, surface, publish, stop, tick, register }
 }
 
 describe('firefox live glass scenes', () => {
+  it('releases paint dependencies during a gesture and shares one scroll listener across surfaces', () => {
+    const { root, scroller, source, surface, stop, tick, register } = scrollingScene()
+    const addListener = vi.spyOn(root, 'addEventListener')
+    const secondStop = observeFirefoxGlass(surface, vi.fn())
+    try {
+      tick()
+      expect(addListener.mock.calls.filter(([type]) => type === 'scroll')).toHaveLength(0)
+      expect(register).toHaveBeenCalledTimes(1)
+      scroller.dispatchEvent(new Event('scroll'))
+      expect(register).toHaveBeenCalledTimes(2)
+      expect(register).toHaveBeenLastCalledWith(expect.any(String), null)
+      expect(root.host.hasAttribute('data-glass-scrolling')).toBe(true)
+      scroller.dispatchEvent(new Event('scroll'))
+      expect(register).toHaveBeenCalledTimes(2)
+      scroller.dispatchEvent(new Event('scrollend'))
+      vi.advanceTimersByTime(100)
+      tick()
+      expect(register).toHaveBeenCalledTimes(3)
+      expect(register).toHaveBeenLastCalledWith(expect.any(String), source)
+      tick()
+      expect(root.host.hasAttribute('data-glass-scrolling')).toBe(false)
+    }
+    finally {
+      secondStop()
+      stop()
+      addListener.mockRestore()
+    }
+  })
+
   it('keeps live content but excludes glass and its foreground from paint cycles', () => {
     const root = document.createElement('div').attachShadow({ mode: 'open' })
     root.innerHTML = `<div data-glass-scene id="wallpaper"></div>
@@ -131,7 +161,7 @@ describe('firefox live glass scenes', () => {
 
       source.getBoundingClientRect = () => new DOMRect(0, -40, 300, 100)
       scroller.dispatchEvent(new Event('scrollend'))
-      vi.advanceTimersByTime(80)
+      vi.advanceTimersByTime(100)
       tick()
       expect(publish.mock.lastCall?.[0][0].backgroundPosition).toBe('0px -40px')
       expect(surface.hasAttribute('data-glass-scrolling')).toBe(true)
@@ -148,7 +178,7 @@ describe('firefox live glass scenes', () => {
     try {
       scroller.dispatchEvent(new Event('scroll'))
       scroller.dispatchEvent(new Event('scrollend'))
-      vi.advanceTimersByTime(80)
+      vi.advanceTimersByTime(100)
       tick()
       scroller.dispatchEvent(new Event('scroll'))
       tick()
@@ -177,7 +207,7 @@ describe('firefox live glass scenes', () => {
         expect(surface.hasAttribute('data-glass-scrolling')).toBe(true)
       }
       expect(publish).not.toHaveBeenCalled()
-      vi.advanceTimersByTime(50)
+      vi.advanceTimersByTime(70)
       tick()
       tick()
       expect(surface.hasAttribute('data-glass-scrolling')).toBe(false)

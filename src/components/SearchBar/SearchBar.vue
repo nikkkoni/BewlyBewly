@@ -280,6 +280,7 @@ async function handleClearSearchHistory() {
             && keyword.length === 0
         "
         id="search-history"
+        class="bew-glass-surface"
       >
         <div class="history-list flex flex-col gap-y-2">
           <div class="title p-2 pb-0 flex justify-between">
@@ -315,6 +316,7 @@ async function handleClearSearchHistory() {
       <div
         v-if="isFocus && suggestions.length !== 0 && keyword.length > 0"
         id="search-suggestion"
+        class="bew-glass-surface"
       >
         <div
           v-for="(item, index) in suggestions"
@@ -384,9 +386,10 @@ async function handleClearSearchHistory() {
   --b-search-bar-focus-text-color: var(--bew-text-1);
 
   @mixin card-content {
-    --uno: "text-base outline-none w-full bg-$b-search-bar-normal-color transform-gpu border-1 border-$bew-border-color";
+    --uno: "text-base outline-none w-full transform-gpu border-1 border-$bew-border-color";
     --uno: "shadow-[var(--bew-shadow-2),var(--bew-shadow-edge-glow-1)]";
-    background-image: var(--bew-glass-sheen);
+    background-color: var(--bew-glass-panel);
+    background-image: var(--bew-glass-rim);
     border-color: var(--bew-glass-border);
     -webkit-backdrop-filter: var(--bew-filter-glass-1);
     backdrop-filter: var(--bew-filter-glass-1);
@@ -447,7 +450,6 @@ async function handleClearSearchHistory() {
 
   #search-history {
     @include search-content;
-    --uno: "bg-$bew-elevated";
 
     .history-list {
       --uno: "max-h-420px important-overflow-y-auto";
@@ -467,7 +469,6 @@ async function handleClearSearchHistory() {
 
   #search-suggestion {
     @include search-content;
-    --uno: "bg-$bew-elevated";
     --uno: "max-h-420px important-overflow-y-auto";
 
     .suggestion-item {

@@ -988,9 +988,8 @@ defineExpose({
 }
 
 .bew-popover {
-  background-image: var(--bew-glass-sheen);
+  background-image: var(--bew-glass-rim);
   border-color: var(--bew-glass-border);
-  -webkit-backdrop-filter: var(--bew-filter-glass-1);
   --uno: "absolute";
   --uno: "overflow-hidden";
   --uno: "after:content-empty";

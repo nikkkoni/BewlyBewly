@@ -138,7 +138,7 @@ onBeforeUnmount(() => {
     class="bew-liquid-glass"
     :class="{ 'is-refracting': refracting, 'is-firefox': refracting && mode === 'firefox', 'is-opaque': disabled || reduceTransparency }"
     :data-refraction="refracting ? mode : 'fallback'"
-    :style="{ '--lens-filter': refracting ? `url(#${id}) saturate(1.2)` : undefined, '--lens-frost': `${reduced ? frost / 2 : frost}px` }"
+    :style="{ '--lens-filter': refracting ? `url(#${id}) saturate(1.2)` : undefined }"
     aria-hidden="true"
   >
     <svg v-if="refracting" class="lens-definitions" width="0" height="0" focusable="false">
@@ -153,22 +153,28 @@ onBeforeUnmount(() => {
             preserveAspectRatio="none" result="lens"
           />
           <feDisplacementMap
-            in="scene" in2="lens" :scale="strength * 1.04" xChannelSelector="R" yChannelSelector="G"
-            result="red"
-          />
-          <feColorMatrix in="red" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="r" />
-          <feDisplacementMap
+            v-if="mode === 'firefox'"
             in="scene" in2="lens" :scale="strength" xChannelSelector="R" yChannelSelector="G"
-            result="green"
           />
-          <feColorMatrix in="green" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="g" />
-          <feDisplacementMap
-            in="scene" in2="lens" :scale="strength * 0.96" xChannelSelector="R" yChannelSelector="G"
-            result="blue"
-          />
-          <feColorMatrix in="blue" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="b" />
-          <feBlend in="r" in2="g" mode="screen" result="rg" />
-          <feBlend in="rg" in2="b" mode="screen" />
+          <template v-else>
+            <feDisplacementMap
+              in="scene" in2="lens" :scale="strength * 1.04" xChannelSelector="R" yChannelSelector="G"
+              result="red"
+            />
+            <feColorMatrix in="red" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="r" />
+            <feDisplacementMap
+              in="scene" in2="lens" :scale="strength" xChannelSelector="R" yChannelSelector="G"
+              result="green"
+            />
+            <feColorMatrix in="green" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="g" />
+            <feDisplacementMap
+              in="scene" in2="lens" :scale="strength * 0.96" xChannelSelector="R" yChannelSelector="G"
+              result="blue"
+            />
+            <feColorMatrix in="blue" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="b" />
+            <feBlend in="r" in2="g" mode="screen" result="rg" />
+            <feBlend in="rg" in2="b" mode="screen" />
+          </template>
         </filter>
       </defs>
     </svg>
@@ -279,9 +285,9 @@ onBeforeUnmount(() => {
     }
 
     .lens-backdrop {
-      // Match the resting material's blur/tint to avoid a milky flash. The
-      // browser samples the actual moving backdrop while SVG refraction rests.
-      backdrop-filter: blur(var(--lens-frost)) saturate(1.2);
+      // Live backdrop blur is also expensive during Firefox APZ scrolling.
+      // Keep tint/rim stable and release both sampling paths for the gesture.
+      backdrop-filter: none;
     }
   }
 }
