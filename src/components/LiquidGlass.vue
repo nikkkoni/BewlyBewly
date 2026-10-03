@@ -3,6 +3,7 @@ import { computed, onActivated, onBeforeUnmount, onDeactivated, onMounted, ref, 
 
 import type { GlassSceneLayer } from '~/utils/firefoxGlass'
 import { observeFirefoxGlass, supportsFirefoxGlass } from '~/utils/firefoxGlass'
+import { createFirefoxGlassFilter, type GlassOffsetGroup, supportsFirefoxBackdrop } from '~/utils/firefoxGlassFilter'
 import { glassLensDataUrl } from '~/utils/glassLens'
 import { createGlassSceneRenderer } from '~/utils/glassSceneRenderer'
 
@@ -16,15 +17,18 @@ const props = withDefaults(defineProps<{
 const surface = ref<HTMLElement>()
 const size = ref({ width: 0, height: 0 })
 const mapUrl = ref<string>()
-const mode = ref<'svg' | 'firefox' | 'fallback'>('fallback')
+const mode = ref<'svg' | 'firefox-native' | 'firefox' | 'fallback'>('fallback')
 const active = ref(true)
 const sceneLayers = shallowRef<GlassSceneLayer[]>([])
+const offsetGroups = shallowRef<GlassOffsetGroup[]>([])
 const sceneRenderer = createGlassSceneRenderer(layers => sceneLayers.value = layers)
 const reduceTransparency = ref(false)
 const reduceMotion = ref(false)
 const id = `bew-lens-${Math.random().toString(36).slice(2)}`
 const enabled = computed(() => active.value && mode.value !== 'fallback' && !props.disabled && !reduceTransparency.value)
-const refracting = computed(() => enabled.value && !!mapUrl.value && (mode.value !== 'firefox' || sceneLayers.value.length > 0))
+const refracting = computed(() => enabled.value && (mode.value === 'firefox-native'
+  ? offsetGroups.value.length > 0
+  : !!mapUrl.value && (mode.value !== 'firefox' || sceneLayers.value.length > 0)))
 const strength = computed(() => props.reduced ? props.strength * 0.5 : props.strength)
 let resizeObserver: ResizeObserver | undefined
 let parent: HTMLElement | null = null
@@ -47,7 +51,10 @@ function updateMap() {
   const parsedRadius = Number.parseFloat(css.borderTopLeftRadius)
   const radius = Number.isFinite(parsedRadius) ? parsedRadius : 24
   try {
-    mapUrl.value = glassLensDataUrl(width, height, radius)
+    if (mode.value === 'firefox-native')
+      offsetGroups.value = createFirefoxGlassFilter(width, height, radius)
+    else
+      mapUrl.value = glassLensDataUrl(width, height, radius)
     size.value = { width, height }
   }
   catch {
@@ -94,9 +101,11 @@ watch(enabled, (value) => {
 onActivated(() => active.value = true)
 onDeactivated(() => active.value = false)
 onMounted(() => {
-  // Firefox supports ordinary SVG filters on a live -moz-element() image,
-  // but not this SVG backdrop-filter chain. Safari keeps the CSS fallback.
-  if (supportsFirefoxGlass())
+  // Native feOffset/feMerge keeps Firefox's refraction in the compositor.
+  // Older Firefox retains live element images; Safari keeps the CSS fallback.
+  if (supportsFirefoxBackdrop())
+    mode.value = 'firefox-native'
+  else if (supportsFirefoxGlass())
     mode.value = 'firefox'
   else if (/(?:Chrome|Chromium|Edg)\//.test(navigator.userAgent) && !/(?:EdgiOS|CriOS)\//.test(navigator.userAgent) && CSS.supports('backdrop-filter', 'url("#lens")'))
     mode.value = 'svg'
@@ -140,42 +149,64 @@ onBeforeUnmount(() => {
     class="bew-liquid-glass"
     :class="{ 'is-refracting': refracting, 'is-firefox': refracting && mode === 'firefox', 'is-opaque': disabled || reduceTransparency }"
     :data-refraction="refracting ? mode : 'fallback'"
-    :style="{ '--lens-filter': refracting ? `url(#${id}) saturate(1.2)` : undefined }"
+    :style="{ '--lens-filter': refracting ? `url(#${id})${mode === 'firefox-native' ? '' : ' saturate(1.2)'}` : undefined }"
     aria-hidden="true"
   >
     <svg v-if="refracting" class="lens-definitions" width="0" height="0" focusable="false">
       <defs>
         <filter
-          :id="id" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"
+          :id="id" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse" color-interpolation-filters="sRGB"
           x="0" y="0" :width="size.width" :height="size.height"
         >
-          <feGaussianBlur in="SourceGraphic" :stdDeviation="reduced ? frost / 2 : frost" result="scene" />
-          <feImage
-            :href="mapUrl" x="0" y="0" :width="size.width" :height="size.height"
-            preserveAspectRatio="none" result="lens"
+          <feGaussianBlur
+            in="SourceGraphic" :stdDeviation="reduced ? frost / 2 : frost" result="scene" x="0" y="0"
+            :width="size.width" :height="size.height"
           />
-          <feDisplacementMap
-            v-if="mode === 'firefox'"
-            in="scene" in2="lens" :scale="strength" xChannelSelector="R" yChannelSelector="G"
-          />
+          <template v-if="mode === 'firefox-native'">
+            <template v-for="(group, index) in offsetGroups" :key="index">
+              <feOffset
+                v-for="(patch, patchIndex) in group.patches" :key="patchIndex"
+                in="scene" :dx="patch.dx * strength" :dy="patch.dy * strength"
+                :x="patch.x" :y="patch.y" :width="patch.width" :height="patch.height"
+                :result="`patch-${index}-${patchIndex}`"
+              />
+              <feMerge :x="group.x" :y="group.y" :width="group.width" :height="group.height" :result="`edge-${index}`">
+                <feMergeNode v-for="(_, patchIndex) in group.patches" :key="patchIndex" :in="`patch-${index}-${patchIndex}`" />
+              </feMerge>
+            </template>
+            <feMerge x="0" y="0" :width="size.width" :height="size.height">
+              <feMergeNode in="scene" />
+              <feMergeNode v-for="(_, index) in offsetGroups" :key="index" :in="`edge-${index}`" />
+            </feMerge>
+          </template>
           <template v-else>
-            <feDisplacementMap
-              in="scene" in2="lens" :scale="strength * 1.04" xChannelSelector="R" yChannelSelector="G"
-              result="red"
+            <feImage
+              :href="mapUrl" x="0" y="0" :width="size.width" :height="size.height"
+              preserveAspectRatio="none" result="lens"
             />
-            <feColorMatrix in="red" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="r" />
             <feDisplacementMap
+              v-if="mode === 'firefox'"
               in="scene" in2="lens" :scale="strength" xChannelSelector="R" yChannelSelector="G"
-              result="green"
             />
-            <feColorMatrix in="green" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="g" />
-            <feDisplacementMap
-              in="scene" in2="lens" :scale="strength * 0.96" xChannelSelector="R" yChannelSelector="G"
-              result="blue"
-            />
-            <feColorMatrix in="blue" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="b" />
-            <feBlend in="r" in2="g" mode="screen" result="rg" />
-            <feBlend in="rg" in2="b" mode="screen" />
+            <template v-else>
+              <feDisplacementMap
+                in="scene" in2="lens" :scale="strength * 1.04" xChannelSelector="R" yChannelSelector="G"
+                result="red"
+              />
+              <feColorMatrix in="red" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="r" />
+              <feDisplacementMap
+                in="scene" in2="lens" :scale="strength" xChannelSelector="R" yChannelSelector="G"
+                result="green"
+              />
+              <feColorMatrix in="green" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="g" />
+              <feDisplacementMap
+                in="scene" in2="lens" :scale="strength * 0.96" xChannelSelector="R" yChannelSelector="G"
+                result="blue"
+              />
+              <feColorMatrix in="blue" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="b" />
+              <feBlend in="r" in2="g" mode="screen" result="rg" />
+              <feBlend in="rg" in2="b" mode="screen" />
+            </template>
           </template>
         </filter>
       </defs>
