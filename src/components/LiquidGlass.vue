@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onActivated, onBeforeUnmount, onDeactivated, onMounted, ref, shallowRef, watch } from 'vue'
 
+import { settings } from '~/logic'
 import type { GlassSceneLayer } from '~/utils/firefoxGlass'
 import { observeFirefoxGlass, supportsFirefoxGlass } from '~/utils/firefoxGlass'
 import { createFirefoxGlassFilter, type GlassOffsetGroup, supportsFirefoxBackdrop } from '~/utils/firefoxGlassFilter'
@@ -54,7 +55,7 @@ function updateMap() {
     if (mode.value === 'firefox-native')
       offsetGroups.value = createFirefoxGlassFilter(width, height, radius)
     else
-      mapUrl.value = glassLensDataUrl(width, height, radius)
+      mapUrl.value = glassLensDataUrl(width, height, radius, mode.value === 'firefox')
     size.value = { width, height }
   }
   catch {
@@ -91,7 +92,7 @@ function resetHighlight() {
   updateHighlight()
 }
 
-watch(enabled, (value) => {
+watch([enabled, mode], ([value]) => {
   queueResize()
   stopScene?.()
   stopScene = undefined
@@ -101,14 +102,18 @@ watch(enabled, (value) => {
 onActivated(() => active.value = true)
 onDeactivated(() => active.value = false)
 onMounted(() => {
-  // Native feOffset/feMerge keeps Firefox's refraction in the compositor.
-  // Older Firefox retains live element images; Safari keeps the CSS fallback.
-  if (supportsFirefoxBackdrop())
-    mode.value = 'firefox-native'
-  else if (supportsFirefoxGlass())
-    mode.value = 'firefox'
-  else if (/(?:Chrome|Chromium|Edg)\//.test(navigator.userAgent) && !/(?:EdgiOS|CriOS)\//.test(navigator.userAgent) && CSS.supports('backdrop-filter', 'url("#lens")'))
+  const nativeFirefox = supportsFirefoxBackdrop()
+  const liveFirefox = supportsFirefoxGlass()
+  if (nativeFirefox || liveFirefox) {
+    // Full curved refraction is the default. Keep the compositor approximation
+    // selectable so users can compare optical quality and scrolling latency.
+    cleanups.push(watch(() => settings.value.firefoxPreferScrollSync, (preferSync) => {
+      mode.value = nativeFirefox && (preferSync || !liveFirefox) ? 'firefox-native' : 'firefox'
+    }, { immediate: true }))
+  }
+  else if (/(?:Chrome|Chromium|Edg)\//.test(navigator.userAgent) && !/(?:EdgiOS|CriOS)\//.test(navigator.userAgent) && CSS.supports('backdrop-filter', 'url("#lens")')) {
     mode.value = 'svg'
+  }
 
   for (const [query, state] of [
     ['(prefers-reduced-transparency: reduce)', reduceTransparency],
@@ -149,7 +154,7 @@ onBeforeUnmount(() => {
     class="bew-liquid-glass"
     :class="{ 'is-refracting': refracting, 'is-firefox': refracting && mode === 'firefox', 'is-opaque': disabled || reduceTransparency }"
     :data-refraction="refracting ? mode : 'fallback'"
-    :style="{ '--lens-filter': refracting ? `url(#${id})${mode === 'firefox-native' ? '' : ' saturate(1.2)'}` : undefined }"
+    :style="{ '--lens-filter': refracting ? `url(#${id})${mode === 'firefox-native' ? '' : mode === 'firefox' ? ' saturate(1.08)' : ' saturate(1.2)'}` : undefined }"
     aria-hidden="true"
   >
     <svg v-if="refracting" class="lens-definitions" width="0" height="0" focusable="false">
@@ -185,8 +190,9 @@ onBeforeUnmount(() => {
               preserveAspectRatio="none" result="lens"
             />
             <feDisplacementMap
-              v-if="mode === 'firefox'"
+              v-if="mode === 'firefox' && reduced"
               in="scene" in2="lens" :scale="strength" xChannelSelector="R" yChannelSelector="G"
+              result="refracted"
             />
             <template v-else>
               <feDisplacementMap
@@ -205,7 +211,14 @@ onBeforeUnmount(() => {
               />
               <feColorMatrix in="blue" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="b" />
               <feBlend in="r" in2="g" mode="screen" result="rg" />
-              <feBlend in="rg" in2="b" mode="screen" />
+              <feBlend in="rg" in2="b" mode="screen" result="refracted" />
+            </template>
+            <template v-if="mode === 'firefox'">
+              <feColorMatrix
+                in="lens" type="matrix" result="specular"
+                values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 1 0 -0.5019607843137255"
+              />
+              <feComposite in="refracted" in2="specular" operator="arithmetic" k2="1" k3="1" />
             </template>
           </template>
         </filter>
@@ -308,9 +321,19 @@ onBeforeUnmount(() => {
     }
   }
 
-  &.is-firefox .lens-backdrop {
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
+  &.is-firefox {
+    .lens-backdrop {
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+
+    .lens-rim {
+      background: radial-gradient(
+        ellipse at var(--lens-light-x, 50%) var(--lens-light-y, 0%),
+        rgb(255 255 255 / 12%),
+        transparent 62%
+      );
+    }
   }
 }
 </style>

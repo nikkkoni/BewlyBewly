@@ -19,6 +19,7 @@ export interface Settings {
 
   disableFrostedGlass: boolean
   reduceFrostedGlassBlur: boolean
+  firefoxPreferScrollSync: boolean
   disableShadow: boolean
 
   enableVideoPreview: boolean
@@ -124,6 +125,7 @@ export const originalSettings: Settings = {
 
   disableFrostedGlass: false,
   reduceFrostedGlassBlur: false,
+  firefoxPreferScrollSync: false,
   disableShadow: false,
 
   // Link Opening Behavior

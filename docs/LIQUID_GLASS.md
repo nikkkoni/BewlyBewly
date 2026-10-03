@@ -15,6 +15,8 @@
 - [shuding/liquid-glass](https://github.com/shuding/liquid-glass)：Canvas 生成位移贴图，通过 SVG `feDisplacementMap` 对背景像素位移。
 - [rdev/liquid-glass-react](https://github.com/rdev/liquid-glass-react)：边缘折射、RGB 色散，以及独立于前景内容的玻璃层。
 - [Meapri/liquid-glass-web](https://github.com/Meapri/liquid-glass-web)：Firefox 使用实时元素图像作为普通 SVG 滤镜的输入。
+- [Amir-Abushanab/liquid-glass-js](https://github.com/Amir-Abushanab/liquid-glass-js)：参考 Firefox 实时背景管线，移植连续圆弧折射剖面和位移贴图蓝通道的边缘高光；完整模式使用三通道轻微色散。
+- [Surdeddd/liquidglassjs](https://github.com/Surdeddd/liquidglassjs)：参考圆角距离场法线、中心中性区域和低模糊材质。没有引入其背景 DOM 克隆后端。
 - [ybouane/liquidglass](https://github.com/ybouane/liquidglass)：研究了其 WebGL 折射、光照及页面内容捕获方案；本扩展没有采用它的页面截图与持续渲染循环。
 
 采用的 MIT 参考实现及完整许可见 [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)。未引入 React 或新的运行时依赖。
@@ -26,35 +28,36 @@
 | 环境 / 设置 | 表现 |
 | --- | --- |
 | 桌面 Chrome / Edge 等 Chromium 浏览器 | SVG 背景折射、轻微色散和高光 |
-| 桌面 Firefox 132+ | 原生背景滤镜，以分段边缘位移近似折射；由合成器随滚动更新 |
-| 较旧桌面 Firefox | 实时元素图像和 SVG 折射；脚本按帧更新位置，繁忙时可能落后于滚动 |
+| 桌面 Firefox（默认） | 实时元素图像、连续曲面折射、轻微色散和边缘高光；脚本同步背景位置 |
+| Firefox 132+，开启“Firefox 优先滚动同步” | 原生背景滤镜，以分段边缘位移近似折射；由合成器随滚动更新 |
 | Safari / iOS 浏览器 | 磨砂玻璃回退，**没有背景折射** |
 | 禁用毛玻璃 / 系统减少透明度 | 实色表面，停止折射 |
-| 降低毛玻璃模糊强度 | 降低模糊和折射幅度 |
+| 降低毛玻璃模糊强度 | 降低模糊和折射幅度；Firefox 曲面模式切换为单次位移，省去色散计算 |
 | 系统减少动态效果 | 停止指针高光跟随，缩短界面过渡 |
 
 系统减少透明度仅在浏览器提供对应媒体查询时生效。Firefox 当前仍将此查询列为[默认关闭的实验功能](https://developer.mozilla.org/en-US/docs/Mozilla/Firefox/Experimental_features#prefers-reduced-transparency_media_feature)；可以随时使用扩展内的“禁用毛玻璃效果”切换到实色界面。
 
-这是一种 Web 上的折射近似实现。CSS 的 `url()` 语法支持不代表浏览器能处理所有 SVG 背景滤镜，因此 Chromium 和 Firefox 使用不同的渲染路径。新版 Firefox 只使用已加速的滤镜原语；旧版缺少实时元素图像能力或可用背景时回退到磨砂。
+这是一种 Web 上的折射近似实现。CSS 的 `url()` 语法支持不代表浏览器能处理所有 SVG 背景滤镜，因此 Chromium 和 Firefox 使用不同的渲染路径。Firefox 默认优先曲面观感；在 **设置 → 常规 → 毛玻璃和性能** 中打开 **Firefox 优先滚动同步**，可切换为合成器处理的分段折射。两种模式均在滚动期间保留折射。无法取得有效背景时回退到磨砂。
 
 浅色和深色模式分别调整玻璃着色。自定义壁纸、主题色、禁用阴影设置继续生效；未设置壁纸时显示主题色渐变。
 
 ## 实现
 
-- `src/components/LiquidGlass.vue`：装饰性的玻璃层、浏览器渲染路径选择、尺寸观察、指针高光与资源清理。Chromium 保留三通道色散，新版 Firefox 使用原生分段位移，旧版 Firefox 使用单次位移贴图。滤镜只处理背景层，前景不参与位移。
+- `src/components/LiquidGlass.vue`：装饰性的玻璃层、浏览器渲染路径选择、尺寸观察、指针高光与资源清理。Firefox 可在连续曲面与原生分段位移之间切换；切换时释放旧路径的背景引用和监听器。滤镜只处理背景层，前景不参与位移。
 - `src/utils/firefoxGlassFilter.ts`：按圆角距离场生成原生边缘位移分区，限制滤镜图规模；仅在尺寸或启用状态改变时计算。
 - `src/utils/glassLens.ts`：按控件实际宽高与圆角生成距离场；曲面边缘向内采样，中心区域保持中性。
+- `src/utils/curvedGlassLens.ts`：Firefox 连续圆弧剖面，以距离场单位法线确定折射方向；边缘压缩向内平滑衰减，蓝通道保存细窄的方向高光。
 - `src/utils/firefoxGlass.ts`：背景选择、Shadow DOM 图像注册、滚动位置和裁剪同步，以及引用计数与注销。
 - `src/utils/glassMotion.ts`：所有玻璃表面共享的滚动监听与帧调度。
 - `src/utils/glassGeometry.ts`：同一帧共享背景尺寸、样式与祖先裁剪测量，下一帧重新读取以适应布局变化。
 - `src/utils/glassSceneRenderer.ts`：图层增删交给 Vue，位置变化直接更新对应样式，跳过未变化的属性。
 - `src/styles/liquidGlass.scss`：浅色 / 深色材质、性能与辅助显示回退。
 
-贴图只在尺寸或启用状态改变时生成，并限制分辨率和缓存数量。滚动由浏览器合成真实背景，不截图、不读取远程图片像素，也不逐帧重新生成贴图。
+贴图只在尺寸、模式或启用状态改变时生成，并限制分辨率和缓存数量。滚动不截图、不读取远程图片像素，也不逐帧重新生成贴图。曲面模式由 Firefox 绘制实时元素图像，脚本同步其位置；原生模式直接处理合成背景。
 
-### Firefox 原生合成器路径（132+）
+### Firefox 原生合成器路径（132+，可选）
 
-Firefox 的 [APZ 异步滚动](https://firefox-source-docs.mozilla.org/performance/scroll-linked_effects.html) 可以先于主线程推进画面。提高脚本采样率仍不能保证背景副本与真实页面同步。因此新版 Firefox 直接通过 `backdrop-filter` 处理浏览器合成的背景，滚动时不复制页面、不测量背景位置，也不修改玻璃 DOM 或样式。
+Firefox 的 [APZ 异步滚动](https://firefox-source-docs.mozilla.org/performance/scroll-linked_effects.html) 可以先于主线程推进画面。提高脚本采样率仍不能保证背景副本与真实页面同步。因此可选的原生路径直接通过 `backdrop-filter` 处理浏览器合成的背景，滚动时不复制页面、不测量背景位置，也不修改玻璃 DOM 或样式。
 
 [Firefox 132](https://www.firefox.com/en-US/firefox/132.0/releasenotes/) 开始加速 `feOffset`、`feMerge` 和 `feGaussianBlur` 等 SVG 原语。`feImage`、`feDisplacementMap` 仍不能用于这条原生路径；含不支持原语的背景滤镜会被忽略。实现将圆角边缘拆成有限的矩形区域，每个区域偏移真实背景，然后合并到轻微模糊的底图上。中心保持透明，边缘产生分段近似折射；视觉上与 Chromium 连续位移和色散存在差别。
 
@@ -62,17 +65,19 @@ Firefox 的 [APZ 异步滚动](https://firefox-source-docs.mozilla.org/performan
 
 原生同步不等于恒定高帧率：绘制仍受显卡、分辨率、页面内容和同时可见的玻璃面积影响。本机无头 Firefox 使用软件 WebRender，完整滤镜的绘制成本仍较高；普通硬件加速窗口的帧率尚未测量。
 
-### 旧版 Firefox 兼容路径
+### Firefox 连续曲面路径（默认）
 
 Firefox 用 `document.mozSetImageElement()` 显式注册扩展 Shadow DOM 内的背景，然后将 `-moz-element()` 作为独立装饰层的背景图。普通 `filter: url(...)` 负责折射，前景文字和按钮不进入滤镜。
 
 背景包括扩展壁纸与页面内容。遇到玻璃控件时拆分绘制区域，排除玻璃自身和其前景，防止循环引用。原生 Bilibili 页面使用扩展宿主之外的页面区域。尺寸变化、页面切换和控件过渡会更新坐标，保留滚动容器的裁剪；实时元素图像由 Firefox 自动更新。仅在页面结构改变后重新查找绘制区域。
 
-旧版路径在滚动期间持续显示 SVG 折射层。每个 Shadow Root 共享一组滚动监听，将同一帧内的事件合并后直接同步背景坐标，避免再多等待一帧。`scrollend` 同步最后位置；没有滚动和其他布局变化时不持续运行绘制循环。
+曲面路径在滚动期间持续显示 SVG 折射层。每个 Shadow Root 共享一组滚动监听，将同一帧内的事件合并后直接同步背景坐标，避免再多等待一帧。`scrollend` 同步最后位置；没有滚动和其他布局变化时不持续运行绘制循环。
 
 同一帧内多个表面共用背景尺寸、样式和裁剪结果；只测量需要裁剪的祖先边界，避免为每个表面重复遍历读取。坐标变化直接写入现有图层，不触发整层 Vue 更新；背景图、尺寸和裁剪未变化时不重复写入。首次挂载尚未完成时，保存最新坐标并在节点就绪时应用，防止快速滚动期间挂载过期位置。
 
-监听覆盖扩展内部、嵌套容器与原生页面。背景仍在玻璃范围内时复用注册图像，完全离开后释放；只在页面结构变化后重新查找背景。保留 Firefox 单次位移和贴图缓存，视频区域不绘制额外卡片底板。Firefox 的 [APZ 异步滚动](https://firefox-source-docs.mozilla.org/performance/scroll-linked_effects.html) 可能先于主线程更新，因此繁重页面上仍可能出现折射延迟；持续折射也比滚动期间暂停滤镜消耗更多资源。
+监听覆盖扩展内部、嵌套容器与原生页面。背景仍在玻璃范围内时复用注册图像，完全离开后释放；只在页面结构变化后重新查找背景。完整模式使用三个轻微不同的位移幅度产生色散，降低强度后只保留单次位移。视频区域不绘制额外卡片底板。Firefox 的 [APZ 异步滚动](https://firefox-source-docs.mozilla.org/performance/scroll-linked_effects.html) 可能先于主线程更新，因此繁重页面上仍可能出现折射延迟；这次曲面移植改善观感，并未消除该机制的同步限制。
+
+折射集中在最多 18px 的边缘区域，中心保持中性。宽顶栏使用单位法线，避免长宽比例放大侧边形变。细窄高光来自同一曲面贴图，额外的指针高光降至 12% 白色，减少灰白覆盖。浅色和深色模式共用几何、分别着色。
 
 多个玻璃表面共享注册图像，禁用、卸载或组件缓存停用时释放引用和监听器。单个表面最多使用 24 个绘制区域。Firefox 扩展中的 Canvas 缓冲区采用逐数值复制，避免隔离环境对跨域 JavaScript 对象的访问错误，无需新增权限。
 
@@ -90,7 +95,9 @@ Firefox 157.0 已在实际扩展中检查浅色 / 深色、搜索、设置、对
 
 独立压力场景每 160ms 阻塞主线程约 90ms，同时连续正向及反向滚动。先用位移开关对照确认测试玻璃确实折射，再捕获 Profiler 的 55 张合成帧：原生玻璃中心与外部背景没有检出条纹错位，旧脚本采样路径有 54 帧检出错位。判定允许每帧最多 2 个采样点误差以排除 JPEG 边界噪声；原生路径本次全部采样点一致。这个结果验证该场景下的同步性，不代表所有设备的帧率或零延迟保证。
 
-单元测试覆盖原生分区对称性、边界、位移幅度、滤镜图上限和版本选择。旧版路径仍覆盖每帧更新、事件合并、最终位置同步、嵌套滚动、共享监听、离开视口的图像释放与卸载清理。
+单元测试覆盖原生分区对称性、边界、位移幅度、滤镜图上限和版本选择。曲面贴图测试覆盖边缘向内连续衰减、中心中性、方向高光、对称性和内存上限。曲面路径覆盖每帧更新、事件合并、最终位置同步、嵌套滚动、共享监听、离开视口的图像释放与卸载清理。
+
+曲面移植在 Firefox 157.0 的实际扩展中通过网格位移开关检查：顶栏、Dock、两个切换控件、设置内容、设置侧栏和对话框均产生真实折射像素。连续三轮切换两种模式后，原生模式没有残留背景图像层，曲面模式恢复三通道折射；禁用效果、降低强度、搜索、深色和窄窗口检查通过。
 
 测量与渲染测试还覆盖跨表面共享读取、下一帧刷新布局、嵌套裁剪与可见性变化、只更新变化的样式、坐标更新跳过 Vue 发布、延迟挂载采用最新位置，以及旧节点清理。
 

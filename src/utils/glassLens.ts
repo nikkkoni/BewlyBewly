@@ -1,6 +1,8 @@
 // Rounded-rectangle distance fields and SVG displacement follow the approach in
 // shuding/liquid-glass and rdev/liquid-glass-react. See THIRD_PARTY_NOTICES.md.
 
+import { createCurvedGlassLensMap } from './curvedGlassLens'
+
 export interface GlassLensMap {
   width: number
   height: number
@@ -59,18 +61,18 @@ export function createGlassLensMap(width: number, height: number, cornerRadius: 
 
 const maps = new Map<string, string>()
 
-export function glassLensDataUrl(width: number, height: number, radius: number): string | undefined {
-  const key = `${width}:${height}:${radius}`
+export function glassLensDataUrl(width: number, height: number, radius: number, curved = false): string | undefined {
+  const key = `${width}:${height}:${radius}:${curved}`
   const cached = maps.get(key)
   if (cached)
     return cached
 
   const canvas = document.createElement('canvas')
-  const context = canvas.getContext('2d')
+  const context = canvas.getContext('2d', { willReadFrequently: true })
   if (!context)
     return undefined
 
-  const map = createGlassLensMap(width, height, radius)
+  const map = curved ? createCurvedGlassLensMap(width, height, radius) : createGlassLensMap(width, height, radius)
   canvas.width = map.width
   canvas.height = map.height
   // Create the buffer in the canvas's realm. Firefox content scripts cannot

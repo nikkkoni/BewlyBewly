@@ -2,11 +2,13 @@
 import { useI18n } from 'vue-i18n'
 
 import { settings } from '~/logic'
+import { supportsFirefoxBackdrop } from '~/utils/firefoxGlassFilter'
 
 import SettingsItem from '../components/SettingsItem.vue'
 import SettingsItemGroup from '../components/SettingsItemGroup.vue'
 
 const { t, locale } = useI18n()
+const canChooseFirefoxGlass = supportsFirefoxBackdrop()
 
 const langOptions = computed(() => {
   return [
@@ -140,6 +142,13 @@ watch(() => settings.value.language, (newValue) => {
       </SettingsItem>
       <SettingsItem :title="$t('settings.disable_shadow')">
         <Radio v-model="settings.disableShadow" />
+      </SettingsItem>
+      <SettingsItem
+        v-if="canChooseFirefoxGlass && !settings.disableFrostedGlass"
+        :title="$t('settings.firefox_prefer_scroll_sync')"
+        :desc="$t('settings.firefox_prefer_scroll_sync_desc')"
+      >
+        <Radio v-model="settings.firefoxPreferScrollSync" />
       </SettingsItem>
     </SettingsItemGroup>
 

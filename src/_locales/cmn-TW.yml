@@ -129,6 +129,8 @@ settings:
 
   disable_frosted_glass: 停用毛玻璃效果
   reduce_frosted_glass_blur: 降低毛玻璃模糊強度
+  firefox_prefer_scroll_sync: Firefox 優先捲動同步
+  firefox_prefer_scroll_sync_desc: 預設使用連續曲面折射與輕微色散。若捲動時玻璃中的內容跟隨延遲，可開啟此項，改用與捲動同步的簡化折射。
   disable_shadow: 停用陰影
 
   link_opening_behavior_opt:
