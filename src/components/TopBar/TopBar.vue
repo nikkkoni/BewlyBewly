@@ -492,6 +492,7 @@ defineExpose({
       :class="{ 'hide': hideTopBar, 'force-white-icon': forceWhiteIcon }"
       :style="{ position: isTopBarFixed ? 'fixed' : 'absolute' }"
     >
+      <LiquidGlass class="top-bar-material" :disabled="settings.disableFrostedGlass" :reduced="settings.reduceFrostedGlassBlur" :strength="18" />
       <main
         max-w="$bew-page-max-width"
         flex="~ justify-between items-center gap-4"
@@ -530,7 +531,7 @@ defineExpose({
                 p-id="1477" width="36" height="36"
                 :style="{
                   fill: forceWhiteIcon ? 'white' : 'var(--bew-theme-color)',
-                  filter: forceWhiteIcon ? 'drop-shadow(0 0 4px rgba(0, 0, 0, 0.6))' : 'drop-shadow(0 0 4px var(--bew-theme-color-60))',
+                  filter: forceWhiteIcon ? 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3))' : 'none',
                 }"
                 group-hover:fill="!white"
                 group-hover:filter="!none"
@@ -558,6 +559,7 @@ defineExpose({
             <SearchBar
               v-if="showSearchBar"
               class="search-bar"
+              embedded
               :style="{
                 '--b-search-bar-normal-color': settings.disableFrostedGlass ? 'var(--bew-elevated)' : 'color-mix(in oklab, var(--bew-elevated-solid), transparent 60%)',
                 '--b-search-bar-hover-color': 'var(--bew-elevated-hover)',
@@ -782,7 +784,6 @@ defineExpose({
                   <a
                     class="upload"
                     :class="{ 'white-icon': forceWhiteIcon }"
-                    style="backdrop-filter: var(--bew-filter-glass-1);"
                     href="https://member.bilibili.com/platform/upload/video/frame"
                     target="_blank"
                     :title="$t('topbar.upload')"
@@ -915,31 +916,25 @@ defineExpose({
 
 <style lang="scss" scoped>
 .liquid-top-bar {
-  // Blur the material layer only, so menus keep their existing positioning.
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 6px 20px;
-    border: 1px solid var(--bew-glass-border);
-    border-radius: 24px;
-    background-color: var(--bew-content);
-    background-image: var(--bew-glass-sheen);
-    box-shadow: var(--bew-shadow-edge-glow-1), var(--bew-shadow-2);
-    -webkit-backdrop-filter: var(--bew-filter-glass-1);
-    backdrop-filter: var(--bew-filter-glass-1);
-    pointer-events: none;
+  .top-bar-material {
+    inset: 0;
+    border-radius: 0;
+    box-shadow: none;
+
+    :deep(.lens-rim) {
+      border-width: 0 0 1px;
+      border-color: var(--bew-border-color);
+      box-shadow: none;
+      background: none;
+    }
   }
 
-  &.force-white-icon::before {
-    background-color: rgb(20 24 34 / var(--bew-content-opacity));
-    border-color: rgb(255 255 255 / 20%);
+  &.force-white-icon .top-bar-material {
+    --bew-lens-tint: rgb(20 24 34 / 40%);
+    --bew-content: rgb(20 24 34 / var(--bew-content-opacity));
   }
 
   @media (max-width: 640px) {
-    &::before {
-      inset-inline: 8px;
-    }
-
     > main {
       padding-inline: 20px;
       gap: 8px;
@@ -989,12 +984,6 @@ defineExpose({
 
 .hide {
   transform: translateY(-100%);
-}
-
-:deep(.search-bar) {
-  input:not(:focus, :focus-within) {
-    --uno: "!border-$bew-border-color !shadow-$bew-shadow-1";
-  }
 }
 
 .bew-popover {

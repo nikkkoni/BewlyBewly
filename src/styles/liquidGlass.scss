@@ -3,6 +3,8 @@
 :root {
   --bew-radius: 16px;
   --bew-content-opacity: 0.72;
+  --bew-lens-tint: rgb(255 255 255 / 10%);
+  --bew-lens-panel-tint: rgb(255 255 255 / 76%);
   --bew-filter-glass-1: blur(24px) saturate(165%);
   --bew-filter-glass-2: blur(36px) saturate(155%);
   --bew-glass-border: rgb(255 255 255 / 72%);
@@ -25,6 +27,8 @@
 
 :host(.dark),
 :root.dark {
+  --bew-lens-tint: rgb(18 24 34 / 20%);
+  --bew-lens-panel-tint: rgb(18 22 30 / 80%);
   --bew-glass-border: rgb(255 255 255 / 16%);
   --bew-glass-sheen: linear-gradient(135deg, rgb(255 255 255 / 10%), transparent 42%, rgb(255 255 255 / 3%));
   --bew-glass-ambient: radial-gradient(ellipse at 8% 8%, var(--bew-theme-color-20), transparent 52%),
@@ -100,13 +104,6 @@
   border-color: var(--bew-glass-border);
   -webkit-backdrop-filter: var(--bew-filter-glass-1);
   backdrop-filter: var(--bew-filter-glass-1);
-}
-
-.bewly-wrapper .bew-glass-dialog {
-  background-image: var(--bew-glass-sheen);
-  border-color: var(--bew-glass-border);
-  -webkit-backdrop-filter: var(--bew-filter-glass-2);
-  backdrop-filter: var(--bew-filter-glass-2);
 }
 
 .bewly-wrapper :is(button, a, input, [tabindex]):focus-visible {

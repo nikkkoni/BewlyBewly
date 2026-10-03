@@ -250,8 +250,9 @@ const dockTransformStyle = computed((): { transform: string, transformOrigin: st
       @mouseleave="toggleHideDock(true)"
     >
       <div
-        class="dock-content-inner bew-glass-surface"
+        class="dock-content-inner"
       >
+        <LiquidGlass :disabled="settings.disableFrostedGlass" :reduced="settings.reduceFrostedGlassBlur" :strength="30" />
         <template v-for="dockItem in currentDockItems" :key="dockItem.page">
           <Tooltip :content="$t(dockItem.i18nKey)" :placement="tooltipPlacement">
             <button
@@ -474,11 +475,14 @@ const dockTransformStyle = computed((): { transform: string, transformOrigin: st
 
   .dock-content-inner {
     --uno: "duration-300 ease-in-out transform-gpu";
-    --uno: "p-2 m-2 bg-$bew-content-alt dark:bg-$bew-elevated";
+    --uno: "relative p-2 m-2";
     --uno: "flex flex-col gap-2 shrink-0";
-    --uno: "rounded-full border-1 border-$bew-border-color";
-    box-shadow: var(--bew-shadow-edge-glow-1), var(--bew-shadow-2);
-    backdrop-filter: var(--bew-filter-glass-1);
+    --uno: "rounded-full border-1 border-transparent";
+
+    > :not(.bew-liquid-glass) {
+      position: relative;
+      z-index: 1;
+    }
   }
 
   &.bottom .dock-content-inner {

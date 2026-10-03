@@ -3,6 +3,7 @@ import { onKeyStroke } from '@vueuse/core'
 
 import Button from '~/components/Button.vue'
 import { useBewlyApp } from '~/composables/useAppProvider'
+import { settings } from '~/logic'
 
 const props = withDefaults(defineProps<{
   title?: string
@@ -107,20 +108,24 @@ function handleConfirm() {
           @click="handleClose"
         />
         <div
-          :class="{ 'bew-glass-dialog': frostedGlass }"
+          :class="{ 'bew-liquid-dialog': frostedGlass }"
           style="
             box-shadow: var(--bew-shadow-4), var(--bew-shadow-edge-glow-2);
           "
           :style="{
             width: dialogWidth,
             maxWidth: dialogMaxWidth,
-            backdropFilter: frostedGlass ? 'var(--bew-filter-glass-2)' : 'none',
-            backgroundColor: frostedGlass ? 'var(--bew-elevated)' : 'var(--bew-elevated-solid)',
+            backgroundColor: frostedGlass ? 'transparent' : 'var(--bew-elevated-solid)',
           }"
           pos="absolute top-1/2 left-1/2" rounded="$bew-radius" border="1 $bew-border-color"
           transform="translate--1/2" z-2
           antialiased
         >
+          <LiquidGlass
+            v-if="frostedGlass"
+            style="--bew-lens-tint: var(--bew-lens-panel-tint)"
+            :disabled="settings.disableFrostedGlass" :reduced="settings.reduceFrostedGlassBlur" :strength="24" :frost="5"
+          />
           <!-- loading masking -->
           <Transition name="fade">
             <div
@@ -223,4 +228,7 @@ function handleConfirm() {
 </template>
 
 <style lang="scss" scoped>
+.bew-liquid-dialog > :is(main, footer) {
+  position: relative;
+}
 </style>

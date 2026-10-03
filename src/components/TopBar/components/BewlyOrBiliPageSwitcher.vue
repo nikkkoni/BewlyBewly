@@ -54,9 +54,7 @@ function switchPage(useOriginalBiliPage: boolean) {
   <div
     v-if="showBewlyOrBiliPageSwitcher"
     class="bewly-bili-switcher"
-    :class="{ 'disable-frosted-glass': settings.disableFrostedGlass }"
-    style="backdrop-filter: var(--bew-filter-glass-1);"
-    flex="~ gap-1" bg="$bew-elevated" p-1 rounded-full
+    flex="~ gap-1"
     h-34px
   >
     <button
@@ -65,7 +63,7 @@ function switchPage(useOriginalBiliPage: boolean) {
       :class="{
         active: option.useOriginalBiliPage === isInIframe(),
       }"
-      rounded-inherit text="$bew-text-2 hover:$bew-text-1 xs" p="x-2 lg:x-4" bg="hover:$bew-fill-2"
+      relative text="$bew-text-2 hover:$bew-text-1 xs" p="x-2 lg:x-3"
       fw-bold duration-300
       @click="switchPage(option.useOriginalBiliPage)"
     >
@@ -80,23 +78,20 @@ function switchPage(useOriginalBiliPage: boolean) {
 </template>
 
 <style lang="scss" scoped>
-.force-white-icon .bewly-bili-switcher:not(.disable-frosted-glass) {
-  background-color: color-mix(in oklab, var(--bew-elevated-solid), transparent 80%);
-}
-
-.force-white-icon .bewly-bili-switcher:not(.disable-frosted-glass) .bewly-bili-switcher-button {
+.force-white-icon .bewly-bili-switcher-button {
   --uno: "text-white";
-
-  &:hover {
-    --uno: "bg-white bg-opacity-20";
-  }
-
-  &.active {
-    --uno: "bg-white bg-opacity-30";
-  }
 }
 
 .active {
-  --uno: "bg-$bew-fill-3 text-$bew-text-1";
+  --uno: "text-$bew-text-1";
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: auto 12px 0;
+    height: 2px;
+    border-radius: 2px;
+    background: currentColor;
+  }
 }
 </style>

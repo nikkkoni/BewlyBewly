@@ -40,6 +40,9 @@ function writeManifest() {
 
 fs.ensureDirSync(r(isFirefox ? 'extension-firefox' : isSafari ? 'extension-safari' : 'extension'))
 fs.copySync(r('assets'), r(isFirefox ? 'extension-firefox/assets' : isSafari ? 'extension-safari/assets' : 'extension/assets'))
+fs.copySync(r('THIRD_PARTY_NOTICES.md'), r(
+  isFirefox ? 'extension-firefox/THIRD_PARTY_NOTICES.md' : isSafari ? 'extension-safari/THIRD_PARTY_NOTICES.md' : 'extension/THIRD_PARTY_NOTICES.md',
+))
 writeManifest()
 
 if (isDev) {

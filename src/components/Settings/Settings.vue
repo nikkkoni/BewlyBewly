@@ -185,14 +185,14 @@ function setCurrentTitle() {
       </aside>
 
       <div
-        class="settings-content bew-glass-dialog"
-        style="
-          --un-shadow: var(--bew-shadow-4), var(--bew-shadow-edge-glow-2);
-          backdrop-filter: var(--bew-filter-glass-2);
-        "
-        relative overflow="x-hidden" w-full h-full bg="$bew-elevated-alt"
-        shadow rounded="$bew-radius" border="1 $bew-border-color" transform-gpu
+        class="settings-content"
+        relative overflow="x-hidden" w-full h-full
+        rounded="$bew-radius" border="1 transparent" transform-gpu
       >
+        <LiquidGlass
+          style="--bew-lens-tint: var(--bew-lens-panel-tint); --bew-shadow-2: var(--bew-shadow-4)"
+          :disabled="settings.disableFrostedGlass" :reduced="settings.reduceFrostedGlassBlur" :strength="24" :frost="5"
+        />
         <header
           flex justify-between items-center w-full h-80px
           pos="fixed top-0 left-0" p="x-11"
