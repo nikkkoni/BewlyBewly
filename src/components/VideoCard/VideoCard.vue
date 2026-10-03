@@ -237,7 +237,7 @@ provide('getVideoType', () => props.type!)
 
 <template>
   <div
-    class="bew-video-surface"
+    min-w-0
     :style="{ contentVisibility }"
     intrinsic-size-300px
     duration-300 ease-in-out
@@ -541,27 +541,6 @@ provide('getVideoType', () => props.type!)
 </template>
 
 <style lang="scss" scoped>
-.bew-video-surface {
-  min-width: 0;
-  padding: 8px;
-  border: 1px solid var(--bew-glass-border);
-  border-radius: calc(var(--bew-radius) + 8px);
-  background-color: var(--bew-glass-card);
-  background-image: var(--bew-glass-sheen);
-  // Long lists must not rasterize blurred shadows for every visible card.
-  box-shadow: var(--bew-glass-control-edge);
-  transition:
-    background-color var(--bew-glass-motion),
-    border-color var(--bew-glass-motion);
-
-  &:hover,
-  &:focus-within {
-    background-color: var(--bew-glass-hover);
-    border-color: var(--bew-theme-color-30);
-    box-shadow: var(--bew-glass-control-edge);
-  }
-}
-
 .horizontal-card-cover {
   --uno: "xl:w-280px lg:w-250px md:w-200px w-200px";
 }

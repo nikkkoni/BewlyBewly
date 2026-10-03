@@ -2,7 +2,7 @@
 // See https://developer.mozilla.org/docs/Web/API/Document/mozSetImageElement
 // and Meapri/liquid-glass-web (THIRD_PARTY_NOTICES.md).
 
-import { observeGlassMotion } from './glassMotion'
+import { observeGlassScroll } from './glassMotion'
 
 interface FirefoxDocument extends Document {
   mozSetImageElement?: (id: string, element: Element | null) => void
@@ -117,8 +117,6 @@ export function observeFirefoxGlass(surface: HTMLElement, publish: (layers: Glas
   let sources: HTMLElement[] = []
   let sourcesDirty = true
   let frame = 0
-  let revealFrame = 0
-  let scrolling = false
   let motionUntil = 0
   let stopped = false
   const resize = new ResizeObserver(schedule)
@@ -134,8 +132,9 @@ export function observeFirefoxGlass(surface: HTMLElement, publish: (layers: Glas
   }
 
   function sync() {
+    cancelAnimationFrame(frame)
     frame = 0
-    if (stopped || scrolling)
+    if (stopped)
       return
     if (sourcesDirty) {
       sources = collectGlassSources(root)
@@ -149,8 +148,11 @@ export function observeFirefoxGlass(surface: HTMLElement, publish: (layers: Glas
     }
     for (const element of sources) {
       const placement = glassScenePlacement(element.getBoundingClientRect(), glass, sourceClip(element), surface.clientWidth, surface.clientHeight)
-      if (!placement)
+      if (!placement) {
+        if (owned.has(element))
+          release(element)
         continue
+      }
       let id = owned.get(element)
       if (!id) {
         let registration = registrations.get(element)
@@ -167,34 +169,13 @@ export function observeFirefoxGlass(surface: HTMLElement, publish: (layers: Glas
       layers.push({ id, backgroundImage: `-moz-element(#${id})`, ...placement })
     }
     publish(layers)
-    // Vue applies the new layer coordinates after publish. Keep refraction
-    // hidden until those coordinates have reached the DOM.
-    if (surface.hasAttribute('data-glass-scrolling') && !revealFrame) {
-      revealFrame = requestAnimationFrame(() => {
-        revealFrame = 0
-        if (!stopped && !scrolling)
-          surface.removeAttribute('data-glass-scrolling')
-      })
-    }
     if (performance.now() < motionUntil)
       schedule()
   }
 
   function schedule() {
-    if (!stopped && !scrolling && !frame)
+    if (!stopped && !frame)
       frame = requestAnimationFrame(sync)
-  }
-
-  function pause() {
-    surface.setAttribute('data-glass-scrolling', '')
-    // Hiding the CSS consumer is not enough: registered element images still
-    // keep their source paint dependencies alive, including the long feed.
-    // Drop those dependencies for the entire gesture, then register on resume.
-    for (const element of owned.keys())
-      release(element)
-    cancelAnimationFrame(frame)
-    cancelAnimationFrame(revealFrame)
-    frame = revealFrame = 0
   }
 
   function transition(event: Event) {
@@ -215,13 +196,9 @@ export function observeFirefoxGlass(surface: HTMLElement, publish: (layers: Glas
   if (root instanceof ShadowRoot && doc.body)
     mutations.observe(doc.body, { childList: true })
   resize.observe(surface)
-  const stopMotion = observeGlassMotion(root, (moving) => {
-    scrolling = moving
-    if (moving)
-      pause()
-    else
-      schedule()
-  })
+  // The shared callback already runs in a frame; sync directly so scrolling
+  // does not incur a second requestAnimationFrame of latency.
+  const stopMotion = observeGlassScroll(root, sync)
   root.addEventListener('transitionrun', transition, true)
   root.addEventListener('transitionend', schedule, true)
   window.addEventListener('resize', schedule, { passive: true })
@@ -230,9 +207,7 @@ export function observeFirefoxGlass(surface: HTMLElement, publish: (layers: Glas
   return () => {
     stopped = true
     cancelAnimationFrame(frame)
-    cancelAnimationFrame(revealFrame)
     stopMotion()
-    surface.removeAttribute('data-glass-scrolling')
     mutations.disconnect()
     for (const element of owned.keys())
       release(element)

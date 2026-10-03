@@ -50,33 +50,28 @@ function scrollingScene() {
 }
 
 describe('firefox live glass scenes', () => {
-  it('releases paint dependencies during a gesture and shares one scroll listener across surfaces', () => {
-    const { root, scroller, source, surface, stop, tick, register } = scrollingScene()
+  it('keeps registered images alive and shares a scroll listener across surfaces', () => {
+    const { root, scroller, surface, stop, tick, register } = scrollingScene()
     const addListener = vi.spyOn(root, 'addEventListener')
     const secondStop = observeFirefoxGlass(surface, vi.fn())
     try {
       tick()
       expect(addListener.mock.calls.filter(([type]) => type === 'scroll')).toHaveLength(0)
       expect(register).toHaveBeenCalledTimes(1)
-      scroller.dispatchEvent(new Event('scroll'))
-      expect(register).toHaveBeenCalledTimes(2)
-      expect(register).toHaveBeenLastCalledWith(expect.any(String), null)
-      expect(root.host.hasAttribute('data-glass-scrolling')).toBe(true)
-      scroller.dispatchEvent(new Event('scroll'))
-      expect(register).toHaveBeenCalledTimes(2)
-      scroller.dispatchEvent(new Event('scrollend'))
-      vi.advanceTimersByTime(100)
-      tick()
-      expect(register).toHaveBeenCalledTimes(3)
-      expect(register).toHaveBeenLastCalledWith(expect.any(String), source)
-      tick()
+      for (let i = 0; i < 8; i++) {
+        scroller.dispatchEvent(new Event('scroll'))
+        tick()
+      }
+      expect(register).toHaveBeenCalledTimes(1)
       expect(root.host.hasAttribute('data-glass-scrolling')).toBe(false)
+      expect(surface.hasAttribute('data-glass-scrolling')).toBe(false)
     }
     finally {
       secondStop()
       stop()
       addListener.mockRestore()
     }
+    expect(register).toHaveBeenLastCalledWith(expect.any(String), null)
   })
 
   it('keeps live content but excludes glass and its foreground from paint cycles', () => {
@@ -147,93 +142,83 @@ describe('firefox live glass scenes', () => {
     Reflect.deleteProperty(document, 'mozSetImageElement')
   })
 
-  it('hides stale images during scrolling and refreshes geometry before revealing them', () => {
+  it('updates moving image coordinates in the next frame without hiding refraction', () => {
     const { scroller, source, surface, publish, stop, tick } = scrollingScene()
     try {
-      for (let i = 0; i < 8; i++) {
+      for (let i = 1; i <= 8; i++) {
+        source.getBoundingClientRect = () => new DOMRect(0, -i * 5, 300, 100)
         scroller.dispatchEvent(new Event('scroll'))
-        vi.advanceTimersByTime(16)
         tick()
+        expect(publish.mock.lastCall?.[0][0].backgroundPosition).toBe(`0px ${-i * 5}px`)
+        expect(surface.hasAttribute('data-glass-scrolling')).toBe(false)
       }
-      expect(surface.hasAttribute('data-glass-scrolling')).toBe(true)
-      expect(publish).not.toHaveBeenCalled()
-      expect(source.getBoundingClientRect).not.toHaveBeenCalled()
-
-      source.getBoundingClientRect = () => new DOMRect(0, -40, 300, 100)
-      scroller.dispatchEvent(new Event('scrollend'))
-      vi.advanceTimersByTime(100)
-      tick()
-      expect(publish.mock.lastCall?.[0][0].backgroundPosition).toBe('0px -40px')
-      expect(surface.hasAttribute('data-glass-scrolling')).toBe(true)
-      tick()
-      expect(surface.hasAttribute('data-glass-scrolling')).toBe(false)
+      expect(publish).toHaveBeenCalledTimes(8)
     }
     finally {
       stop()
     }
   })
 
-  it('keeps the native backdrop if scrolling restarts before the updated image is revealed', () => {
-    const { scroller, surface, stop, tick } = scrollingScene()
+  it('coalesces repeated scroll events and synchronizes the final scrollend position', () => {
+    const { scroller, source, publish, stop, tick } = scrollingScene()
     try {
-      scroller.dispatchEvent(new Event('scroll'))
-      scroller.dispatchEvent(new Event('scrollend'))
-      vi.advanceTimersByTime(100)
-      tick()
-      scroller.dispatchEvent(new Event('scroll'))
-      tick()
-      expect(surface.hasAttribute('data-glass-scrolling')).toBe(true)
-      vi.advanceTimersByTime(179)
-      tick()
-      expect(surface.hasAttribute('data-glass-scrolling')).toBe(true)
-      vi.advanceTimersByTime(1)
-      tick()
-      tick()
-      expect(surface.hasAttribute('data-glass-scrolling')).toBe(false)
-    }
-    finally {
-      stop()
-    }
-  })
-
-  it('does not switch materials between short instant scroll steps', () => {
-    const { scroller, surface, publish, stop, tick } = scrollingScene()
-    try {
-      for (let i = 0; i < 8; i++) {
+      source.getBoundingClientRect = vi.fn(() => new DOMRect(0, -20, 300, 100))
+      for (let i = 0; i < 8; i++)
         scroller.dispatchEvent(new Event('scroll'))
-        scroller.dispatchEvent(new Event('scrollend'))
-        vi.advanceTimersByTime(30)
-        tick()
-        expect(surface.hasAttribute('data-glass-scrolling')).toBe(true)
-      }
       expect(publish).not.toHaveBeenCalled()
-      vi.advanceTimersByTime(70)
       tick()
+      expect(publish).toHaveBeenCalledTimes(1)
+      expect(source.getBoundingClientRect).toHaveBeenCalledTimes(1)
+      source.getBoundingClientRect = () => new DOMRect(0, -35, 300, 100)
+      scroller.dispatchEvent(new Event('scrollend'))
       tick()
-      expect(surface.hasAttribute('data-glass-scrolling')).toBe(false)
+      expect(publish.mock.lastCall?.[0][0].backgroundPosition).toBe('0px -35px')
+      tick()
+      expect(publish).toHaveBeenCalledTimes(2)
     }
     finally {
       stop()
     }
   })
 
-  it('captures native nested scrollers and waits for all scrolling to stop', () => {
-    const { scroller, surface, publish, stop, tick } = scrollingScene()
+  it('releases sources outside the surface and registers them again on return', () => {
+    const { scroller, source, publish, stop, tick, register } = scrollingScene()
+    try {
+      source.getBoundingClientRect = () => new DOMRect(0, -200, 300, 100)
+      scroller.dispatchEvent(new Event('scroll'))
+      tick()
+      expect(publish).toHaveBeenLastCalledWith([])
+      expect(register).toHaveBeenLastCalledWith(expect.any(String), null)
+      source.getBoundingClientRect = () => new DOMRect(0, -10, 300, 100)
+      scroller.dispatchEvent(new Event('scroll'))
+      tick()
+      expect(register).toHaveBeenLastCalledWith(expect.any(String), source)
+      expect(publish.mock.lastCall?.[0][0].backgroundPosition).toBe('0px -10px')
+    }
+    finally {
+      stop()
+    }
+  })
+
+  it('captures nested and native scrollers and cancels queued updates on cleanup', () => {
+    const { scroller, source, publish, stop, tick } = scrollingScene()
     const nativeScroller = document.createElement('div')
     document.body.append(nativeScroller)
+    source.getBoundingClientRect = () => new DOMRect(0, -10, 300, 100)
     scroller.dispatchEvent(new Event('scroll'))
     nativeScroller.dispatchEvent(new Event('scroll'))
-    scroller.dispatchEvent(new Event('scrollend'))
     tick()
-    expect(surface.hasAttribute('data-glass-scrolling')).toBe(true)
-    expect(publish).not.toHaveBeenCalled()
+    expect(publish).toHaveBeenCalledTimes(1)
+    source.getBoundingClientRect = () => new DOMRect(0, -20, 300, 100)
+    nativeScroller.dispatchEvent(new Event('scroll'))
+    tick()
+    expect(publish.mock.lastCall?.[0][0].backgroundPosition).toBe('0px -20px')
+    nativeScroller.dispatchEvent(new Event('scroll'))
     stop()
     publish.mockClear()
-    vi.advanceTimersByTime(500)
     nativeScroller.dispatchEvent(new Event('scroll'))
     nativeScroller.dispatchEvent(new Event('scrollend'))
     tick()
-    expect(surface.hasAttribute('data-glass-scrolling')).toBe(false)
     expect(publish).not.toHaveBeenCalled()
   })
 })

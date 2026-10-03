@@ -278,17 +278,5 @@ onBeforeUnmount(() => {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
-
-  &.is-firefox[data-glass-scrolling] {
-    .lens-scene-clip {
-      display: none;
-    }
-
-    .lens-backdrop {
-      // Live backdrop blur is also expensive during Firefox APZ scrolling.
-      // Keep tint/rim stable and release both sampling paths for the gesture.
-      backdrop-filter: none;
-    }
-  }
 }
 </style>

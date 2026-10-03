@@ -159,20 +159,6 @@
   }
 }
 
-// Firefox's shared motion observer sets this only for an active gesture.
-// Preserve transparency and highlights, without re-filtering moving content.
-:host([data-glass-scrolling]),
-:root[data-glass-scrolling] {
-  --bew-filter-glass-1: none;
-  --bew-filter-glass-2: none;
-
-  .bewly-wrapper .bew-glass-surface,
-  .bewly-wrapper .lens-backdrop,
-  .bewly-wrapper #settings-window header > div {
-    backdrop-filter: none !important;
-  }
-}
-
 .bewly-wrapper :is(button, a, input, [tabindex]):focus-visible {
   outline: 2px solid var(--bew-theme-color);
   outline-offset: 3px;
