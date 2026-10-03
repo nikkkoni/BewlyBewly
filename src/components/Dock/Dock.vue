@@ -250,7 +250,7 @@ const dockTransformStyle = computed((): { transform: string, transformOrigin: st
       @mouseleave="toggleHideDock(true)"
     >
       <div
-        class="dock-content-inner"
+        class="dock-content-inner bew-glass-surface"
       >
         <template v-for="dockItem in currentDockItems" :key="dockItem.page">
           <Tooltip :content="$t(dockItem.i18nKey)" :placement="tooltipPlacement">
@@ -489,7 +489,6 @@ const dockTransformStyle = computed((): { transform: string, transformOrigin: st
     --uno: "transform active:important-scale-90 hover:scale-110";
     --uno: "lg:w-45px w-35px lg:h-45px h-35px";
     --uno: "grid place-items-center";
-    --uno: "filter-$bew-filter-glass-1";
     --uno: "bg-$bew-elevated hover:bg-$bew-content-hover";
     --uno: "rounded-full shadow-$bew-shadow-2 border-1 border-$bew-border-color";
 

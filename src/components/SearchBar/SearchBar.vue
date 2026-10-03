@@ -367,8 +367,8 @@ async function handleClearSearchHistory() {
 
 #search-wrap {
   --b-search-bar-normal-color: var(--bew-content);
-  --b-search-bar-hover-color: var(--bew-content-hover);
-  --b-search-bar-focus-color: var(--bew-content-hover);
+  --b-search-bar-hover-color: var(--bew-glass-hover);
+  --b-search-bar-focus-color: var(--bew-elevated);
 
   --b-search-bar-normal-icon-color: var(--bew-text-1);
   --b-search-bar-hover-icon-color: var(--bew-theme-color);
@@ -381,6 +381,9 @@ async function handleClearSearchHistory() {
   @mixin card-content {
     --uno: "text-base outline-none w-full bg-$b-search-bar-normal-color transform-gpu border-1 border-$bew-border-color";
     --uno: "shadow-[var(--bew-shadow-2),var(--bew-shadow-edge-glow-1)]";
+    background-image: var(--bew-glass-sheen);
+    border-color: var(--bew-glass-border);
+    -webkit-backdrop-filter: var(--bew-filter-glass-1);
     backdrop-filter: var(--bew-filter-glass-1);
   }
 
@@ -400,9 +403,9 @@ async function handleClearSearchHistory() {
     &.focus input {
       --uno: "border-$bew-theme-color rounded-$bew-radius";
       box-shadow:
-        0 0 0 2px var(--bew-theme-color),
-        0 6px 16px var(--bew-theme-color-40),
-        inset 0 0 6px var(--bew-theme-color-30);
+        0 0 0 2px var(--bew-theme-color-60),
+        var(--bew-shadow-2),
+        var(--bew-shadow-edge-glow-1);
     }
   }
 

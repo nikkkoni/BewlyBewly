@@ -122,7 +122,7 @@ export const originalSettings: Settings = {
   overrideDanmakuFont: true,
   removeTheIndentFromChinesePunctuation: false,
 
-  disableFrostedGlass: true,
+  disableFrostedGlass: false,
   reduceFrostedGlassBlur: false,
   disableShadow: false,
 

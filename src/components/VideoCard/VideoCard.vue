@@ -237,12 +237,11 @@ provide('getVideoType', () => props.type!)
 
 <template>
   <div
+    class="bew-video-surface"
     :style="{ contentVisibility }"
     intrinsic-size-300px
     duration-300 ease-in-out
     rounded="$bew-radius"
-    ring="hover:8 hover:$bew-fill-2 active:8 active:$bew-fill-3"
-    bg="hover:$bew-fill-2 active:$bew-fill-3"
     transform="~ translate-z-0"
     mb-4
   >
@@ -542,6 +541,27 @@ provide('getVideoType', () => props.type!)
 </template>
 
 <style lang="scss" scoped>
+.bew-video-surface {
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--bew-glass-border);
+  border-radius: calc(var(--bew-radius) + 8px);
+  background-color: var(--bew-glass-card);
+  background-image: var(--bew-glass-sheen);
+  box-shadow: var(--bew-shadow-edge-glow-1), var(--bew-shadow-1);
+  transition:
+    background-color var(--bew-glass-motion),
+    box-shadow var(--bew-glass-motion),
+    border-color var(--bew-glass-motion);
+
+  &:hover,
+  &:focus-within {
+    background-color: var(--bew-glass-hover);
+    border-color: var(--bew-theme-color-30);
+    box-shadow: var(--bew-shadow-edge-glow-1), var(--bew-shadow-2);
+  }
+}
+
 .horizontal-card-cover {
   --uno: "xl:w-280px lg:w-250px md:w-200px w-200px";
 }

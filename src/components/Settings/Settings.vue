@@ -185,7 +185,7 @@ function setCurrentTitle() {
       </aside>
 
       <div
-        class="settings-content"
+        class="settings-content bew-glass-dialog"
         style="
           --un-shadow: var(--bew-shadow-4), var(--bew-shadow-edge-glow-2);
           backdrop-filter: var(--bew-filter-glass-2);

@@ -107,6 +107,7 @@ function handleConfirm() {
           @click="handleClose"
         />
         <div
+          :class="{ 'bew-glass-dialog': frostedGlass }"
           style="
             box-shadow: var(--bew-shadow-4), var(--bew-shadow-edge-glow-2);
           "

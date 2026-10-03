@@ -198,6 +198,7 @@ function toggleTabContentLoading(loading: boolean) {
       >
         <section
           v-if="!(!settings.alwaysShowTabsOnHomePage && currentTabs.length === 1)"
+          class="bew-glass-surface"
           style="backdrop-filter: var(--bew-filter-glass-1)"
           bg="$bew-elevated" p-1
           w="[calc(100vw-280px)]" max-w="fit"
@@ -240,6 +241,7 @@ function toggleTabContentLoading(loading: boolean) {
 
         <div
           v-if="settings.enableGridLayoutSwitcher"
+          class="bew-glass-surface"
           style="backdrop-filter: var(--bew-filter-glass-1)"
           flex="~ gap-1 shrink-0" p-1 h-38px bg="$bew-elevated" transform-gpu
           ml-auto rounded-full

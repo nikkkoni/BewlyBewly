@@ -105,7 +105,7 @@ function setAppWallpaperMaskingOpacity() {
         <div
           pos="absolute top-0 left-0" w-full h-full duration-300 bg="cover center $bew-homepage-bg"
           z--1 transform-gpu
-          :style="{ backgroundImage: `url('${settings.individuallySetSearchPageWallpaper ? settings.searchPageWallpaper : settings.wallpaper}')` }"
+          :style="{ backgroundImage: (settings.individuallySetSearchPageWallpaper ? settings.searchPageWallpaper : settings.wallpaper) ? `url('${settings.individuallySetSearchPageWallpaper ? settings.searchPageWallpaper : settings.wallpaper}')` : 'var(--bew-glass-ambient)' }"
         />
         <!-- background mask -->
         <Transition name="fade">
@@ -122,7 +122,7 @@ function setAppWallpaperMaskingOpacity() {
       <div v-else>
         <!-- background -->
         <div
-          :style="{ backgroundImage: `url('${settings.wallpaper}')` }"
+          :style="{ backgroundImage: settings.wallpaper ? `url('${settings.wallpaper}')` : 'var(--bew-glass-ambient)' }"
           pos="absolute top-0 left-0" w-full h-full duration-300 bg="cover center $bew-homepage-bg"
           z--1 transform-gpu
         />

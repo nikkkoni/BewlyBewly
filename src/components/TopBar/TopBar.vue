@@ -487,6 +487,7 @@ defineExpose({
     <header
       v-if="showTopBar"
       ref="headerTarget"
+      class="liquid-top-bar"
       w="full" transition="all 300 ease-in-out"
       :class="{ 'hide': hideTopBar, 'force-white-icon': forceWhiteIcon }"
       :style="{ position: isTopBarFixed ? 'fixed' : 'absolute' }"
@@ -497,31 +498,6 @@ defineExpose({
         p="x-12" m-auto
         h="$bew-top-bar-height"
       >
-        <!-- Top bar mask -->
-        <div
-          v-if="!reachTop"
-          style="
-            mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1), rgba(0, 0, 0, 1) 24px, rgba(0, 0, 0, 0.9) 44px, transparent);
-          "
-          :style="{ backdropFilter: settings.disableFrostedGlass ? 'none' : 'blur(12px)' }"
-          pos="absolute top-0 left-0" w-full h="[calc(var(--bew-top-bar-height)+16px)]"
-          pointer-events-none transform-gpu
-        />
-
-        <div
-          pos="absolute top-0 left-0" w-full
-          pointer-events-none opacity-100 duration-300
-          :style="{
-            background: `linear-gradient(to bottom, ${
-              forceWhiteIcon
-                ? 'rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.4) calc(var(--bew-top-bar-height) / 2)'
-                : 'color-mix(in oklab, var(--bew-bg), transparent 20%), color-mix(in oklab, var(--bew-bg), transparent 40%) calc(var(--bew-top-bar-height) / 2)'
-            }, transparent)`,
-            opacity: reachTop ? 0.8 : 1,
-            height: reachTop ? 'var(--bew-top-bar-height)' : 'calc(var(--bew-top-bar-height) + 20px)',
-          }"
-        />
-
         <!-- Top bar theme color gradient -->
         <Transition name="fade">
           <div
@@ -938,6 +914,39 @@ defineExpose({
 </template>
 
 <style lang="scss" scoped>
+.liquid-top-bar {
+  // Blur the material layer only, so menus keep their existing positioning.
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 6px 20px;
+    border: 1px solid var(--bew-glass-border);
+    border-radius: 24px;
+    background-color: var(--bew-content);
+    background-image: var(--bew-glass-sheen);
+    box-shadow: var(--bew-shadow-edge-glow-1), var(--bew-shadow-2);
+    -webkit-backdrop-filter: var(--bew-filter-glass-1);
+    backdrop-filter: var(--bew-filter-glass-1);
+    pointer-events: none;
+  }
+
+  &.force-white-icon::before {
+    background-color: rgb(20 24 34 / var(--bew-content-opacity));
+    border-color: rgb(255 255 255 / 20%);
+  }
+
+  @media (max-width: 640px) {
+    &::before {
+      inset-inline: 8px;
+    }
+
+    > main {
+      padding-inline: 20px;
+      gap: 8px;
+    }
+  }
+}
+
 .top-bar-enter-active,
 .top-bar-leave-active {
   transition: all 0.5s ease;
@@ -989,6 +998,9 @@ defineExpose({
 }
 
 .bew-popover {
+  background-image: var(--bew-glass-sheen);
+  border-color: var(--bew-glass-border);
+  -webkit-backdrop-filter: var(--bew-filter-glass-1);
   --uno: "absolute";
   --uno: "overflow-hidden";
   --uno: "after:content-empty";
