@@ -138,7 +138,7 @@ onBeforeUnmount(() => {
     class="bew-liquid-glass"
     :class="{ 'is-refracting': refracting, 'is-firefox': refracting && mode === 'firefox', 'is-opaque': disabled || reduceTransparency }"
     :data-refraction="refracting ? mode : 'fallback'"
-    :style="{ '--lens-filter': refracting ? `url(#${id}) saturate(1.2)` : undefined }"
+    :style="{ '--lens-filter': refracting ? `url(#${id}) saturate(1.2)` : undefined, '--lens-frost': `${reduced ? frost / 2 : frost}px` }"
     aria-hidden="true"
   >
     <svg v-if="refracting" class="lens-definitions" width="0" height="0" focusable="false">
@@ -271,6 +271,18 @@ onBeforeUnmount(() => {
   &.is-firefox .lens-backdrop {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
+  }
+
+  &.is-firefox[data-glass-scrolling] {
+    .lens-scene-clip {
+      display: none;
+    }
+
+    .lens-backdrop {
+      // Match the resting material's blur/tint to avoid a milky flash. The
+      // browser samples the actual moving backdrop while SVG refraction rests.
+      backdrop-filter: blur(var(--lens-frost)) saturate(1.2);
+    }
   }
 }
 </style>

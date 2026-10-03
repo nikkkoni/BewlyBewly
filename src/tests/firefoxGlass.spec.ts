@@ -3,9 +3,50 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { collectGlassSources, glassScenePlacement, observeFirefoxGlass } from '../utils/firefoxGlass'
 
 afterEach(() => {
+  vi.useRealTimers()
   vi.unstubAllGlobals()
+  Reflect.deleteProperty(document, 'mozSetImageElement')
   document.body.replaceChildren()
 })
+
+function scrollingScene() {
+  vi.useFakeTimers()
+  const frames = new Map<number, FrameRequestCallback>()
+  let nextFrame = 0
+  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+    frames.set(++nextFrame, callback)
+    return nextFrame
+  })
+  vi.stubGlobal('cancelAnimationFrame', (id: number) => frames.delete(id))
+  vi.stubGlobal('ResizeObserver', class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  })
+  Object.defineProperty(document, 'mozSetImageElement', { value: vi.fn(), configurable: true })
+  const host = document.createElement('div')
+  document.body.append(host)
+  const root = host.attachShadow({ mode: 'open' })
+  root.innerHTML = '<div id="scroller"><main data-glass-scene></main></div><div class="bew-liquid-glass"></div>'
+  const source = root.querySelector<HTMLElement>('main')!
+  const surface = root.querySelector<HTMLElement>('.bew-liquid-glass')!
+  const scroller = root.querySelector<HTMLElement>('#scroller')!
+  for (const element of [source, surface, scroller]) {
+    element.getBoundingClientRect = vi.fn(() => new DOMRect(0, 0, 300, 100))
+    Object.defineProperties(element, { clientWidth: { value: 300 }, clientHeight: { value: 100 } })
+  }
+  const publish = vi.fn()
+  const stop = observeFirefoxGlass(surface, publish)
+  const tick = () => {
+    const pending = [...frames.values()]
+    frames.clear()
+    pending.forEach(callback => callback(performance.now()))
+  }
+  tick()
+  publish.mockClear()
+  vi.mocked(source.getBoundingClientRect).mockClear()
+  return { root, scroller, source, surface, publish, stop, tick }
+}
 
 describe('firefox live glass scenes', () => {
   it('keeps live content but excludes glass and its foreground from paint cycles', () => {
@@ -74,5 +115,95 @@ describe('firefox live glass scenes', () => {
     expect(register).toHaveBeenLastCalledWith(expect.any(String), null)
     expect(publish).toHaveBeenLastCalledWith([])
     Reflect.deleteProperty(document, 'mozSetImageElement')
+  })
+
+  it('hides stale images during scrolling and refreshes geometry before revealing them', () => {
+    const { scroller, source, surface, publish, stop, tick } = scrollingScene()
+    try {
+      for (let i = 0; i < 8; i++) {
+        scroller.dispatchEvent(new Event('scroll'))
+        vi.advanceTimersByTime(16)
+        tick()
+      }
+      expect(surface.hasAttribute('data-glass-scrolling')).toBe(true)
+      expect(publish).not.toHaveBeenCalled()
+      expect(source.getBoundingClientRect).not.toHaveBeenCalled()
+
+      source.getBoundingClientRect = () => new DOMRect(0, -40, 300, 100)
+      scroller.dispatchEvent(new Event('scrollend'))
+      vi.advanceTimersByTime(80)
+      tick()
+      expect(publish.mock.lastCall?.[0][0].backgroundPosition).toBe('0px -40px')
+      expect(surface.hasAttribute('data-glass-scrolling')).toBe(true)
+      tick()
+      expect(surface.hasAttribute('data-glass-scrolling')).toBe(false)
+    }
+    finally {
+      stop()
+    }
+  })
+
+  it('keeps the native backdrop if scrolling restarts before the updated image is revealed', () => {
+    const { scroller, surface, stop, tick } = scrollingScene()
+    try {
+      scroller.dispatchEvent(new Event('scroll'))
+      scroller.dispatchEvent(new Event('scrollend'))
+      vi.advanceTimersByTime(80)
+      tick()
+      scroller.dispatchEvent(new Event('scroll'))
+      tick()
+      expect(surface.hasAttribute('data-glass-scrolling')).toBe(true)
+      vi.advanceTimersByTime(179)
+      tick()
+      expect(surface.hasAttribute('data-glass-scrolling')).toBe(true)
+      vi.advanceTimersByTime(1)
+      tick()
+      tick()
+      expect(surface.hasAttribute('data-glass-scrolling')).toBe(false)
+    }
+    finally {
+      stop()
+    }
+  })
+
+  it('does not switch materials between short instant scroll steps', () => {
+    const { scroller, surface, publish, stop, tick } = scrollingScene()
+    try {
+      for (let i = 0; i < 8; i++) {
+        scroller.dispatchEvent(new Event('scroll'))
+        scroller.dispatchEvent(new Event('scrollend'))
+        vi.advanceTimersByTime(30)
+        tick()
+        expect(surface.hasAttribute('data-glass-scrolling')).toBe(true)
+      }
+      expect(publish).not.toHaveBeenCalled()
+      vi.advanceTimersByTime(50)
+      tick()
+      tick()
+      expect(surface.hasAttribute('data-glass-scrolling')).toBe(false)
+    }
+    finally {
+      stop()
+    }
+  })
+
+  it('captures native nested scrollers and waits for all scrolling to stop', () => {
+    const { scroller, surface, publish, stop, tick } = scrollingScene()
+    const nativeScroller = document.createElement('div')
+    document.body.append(nativeScroller)
+    scroller.dispatchEvent(new Event('scroll'))
+    nativeScroller.dispatchEvent(new Event('scroll'))
+    scroller.dispatchEvent(new Event('scrollend'))
+    tick()
+    expect(surface.hasAttribute('data-glass-scrolling')).toBe(true)
+    expect(publish).not.toHaveBeenCalled()
+    stop()
+    publish.mockClear()
+    vi.advanceTimersByTime(500)
+    nativeScroller.dispatchEvent(new Event('scroll'))
+    nativeScroller.dispatchEvent(new Event('scrollend'))
+    tick()
+    expect(surface.hasAttribute('data-glass-scrolling')).toBe(false)
+    expect(publish).not.toHaveBeenCalled()
   })
 })

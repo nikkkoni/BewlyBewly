@@ -112,7 +112,14 @@ export function observeFirefoxGlass(surface: HTMLElement, publish: (layers: Glas
   const doc = surface.ownerDocument as FirefoxDocument
   const root = surface.getRootNode() as Document | ShadowRoot
   const owned = new Map<HTMLElement, string>()
+  const scrollRoots = new Set<Document | ShadowRoot>([root, doc])
+  const scrollers = new Set<EventTarget>()
+  let sources: HTMLElement[] = []
+  let sourcesDirty = true
   let frame = 0
+  let revealFrame = 0
+  let scrollTimer: ReturnType<typeof setTimeout> | undefined
+  let scrolling = false
   let motionUntil = 0
   let stopped = false
   const resize = new ResizeObserver(schedule)
@@ -129,9 +136,12 @@ export function observeFirefoxGlass(surface: HTMLElement, publish: (layers: Glas
 
   function sync() {
     frame = 0
-    if (stopped)
+    if (stopped || scrolling)
       return
-    const sources = collectGlassSources(root)
+    if (sourcesDirty) {
+      sources = collectGlassSources(root)
+      sourcesDirty = false
+    }
     const glass = surface.getBoundingClientRect()
     const layers: GlassSceneLayer[] = []
     for (const element of owned.keys()) {
@@ -158,13 +168,57 @@ export function observeFirefoxGlass(surface: HTMLElement, publish: (layers: Glas
       layers.push({ id, backgroundImage: `-moz-element(#${id})`, ...placement })
     }
     publish(layers)
+    // Vue applies the new layer coordinates after publish. Keep the native
+    // backdrop visible until those coordinates have reached the DOM.
+    if (surface.hasAttribute('data-glass-scrolling') && !revealFrame) {
+      revealFrame = requestAnimationFrame(() => {
+        revealFrame = 0
+        if (!stopped && !scrolling)
+          surface.removeAttribute('data-glass-scrolling')
+      })
+    }
     if (performance.now() < motionUntil)
       schedule()
   }
 
   function schedule() {
-    if (!stopped && !frame)
+    if (!stopped && !scrolling && !frame)
       frame = requestAnimationFrame(sync)
+  }
+
+  function resume() {
+    clearTimeout(scrollTimer)
+    scrollers.clear()
+    scrolling = false
+    schedule()
+  }
+
+  function scroll(event: Event) {
+    if (event.target)
+      scrollers.add(event.target)
+    scrolling = true
+    // Firefox scrolls asynchronously (APZ). Moving a -moz-element image from
+    // JS cannot keep up with the compositor. Hide it immediately and let the
+    // native backdrop follow scrolling, without rescanning/repainting scenes.
+    surface.setAttribute('data-glass-scrolling', '')
+    cancelAnimationFrame(frame)
+    cancelAnimationFrame(revealFrame)
+    frame = revealFrame = 0
+    clearTimeout(scrollTimer)
+    // scrollend handles wheel inertia, keyboard and smooth scrolling. This
+    // also covers older Firefox versions and removed scrolling elements.
+    scrollTimer = setTimeout(resume, 180)
+  }
+
+  function scrollEnd(event: Event) {
+    if (event.target)
+      scrollers.delete(event.target)
+    if (scrolling && !scrollers.size) {
+      clearTimeout(scrollTimer)
+      // Instant scrolls can emit scrollend after each wheel tick or scripted
+      // step. A short quiet period prevents alternating materials mid-gesture.
+      scrollTimer = setTimeout(resume, 80)
+    }
   }
 
   function transition(event: Event) {
@@ -176,32 +230,41 @@ export function observeFirefoxGlass(surface: HTMLElement, publish: (layers: Glas
   }
 
   const mutations = new MutationObserver((records) => {
-    if (records.some(record => !(record.target instanceof Element) || !record.target.closest('.bew-liquid-glass')))
+    if (records.some(record => !(record.target instanceof Element) || !record.target.closest('.bew-liquid-glass'))) {
+      sourcesDirty = true
       schedule()
+    }
   })
   mutations.observe(root, { childList: true, subtree: true })
   if (root instanceof ShadowRoot && doc.body)
     mutations.observe(doc.body, { childList: true })
   resize.observe(surface)
-  root.addEventListener('scroll', schedule, true)
+  for (const target of scrollRoots) {
+    target.addEventListener('scroll', scroll, { capture: true, passive: true })
+    target.addEventListener('scrollend', scrollEnd, { capture: true, passive: true })
+  }
   root.addEventListener('transitionrun', transition, true)
   root.addEventListener('transitionend', schedule, true)
   window.addEventListener('resize', schedule, { passive: true })
-  window.addEventListener('scroll', schedule, { passive: true })
   schedule()
 
   return () => {
     stopped = true
     cancelAnimationFrame(frame)
+    cancelAnimationFrame(revealFrame)
+    clearTimeout(scrollTimer)
+    surface.removeAttribute('data-glass-scrolling')
     mutations.disconnect()
     for (const element of owned.keys())
       release(element)
     resize.disconnect()
-    root.removeEventListener('scroll', schedule, true)
+    for (const target of scrollRoots) {
+      target.removeEventListener('scroll', scroll, true)
+      target.removeEventListener('scrollend', scrollEnd, true)
+    }
     root.removeEventListener('transitionrun', transition, true)
     root.removeEventListener('transitionend', schedule, true)
     window.removeEventListener('resize', schedule)
-    window.removeEventListener('scroll', schedule)
     publish([])
   }
 }
