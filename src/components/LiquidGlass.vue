@@ -4,13 +4,14 @@ import { computed, onActivated, onBeforeUnmount, onDeactivated, onMounted, ref, 
 import type { GlassSceneLayer } from '~/utils/firefoxGlass'
 import { observeFirefoxGlass, supportsFirefoxGlass } from '~/utils/firefoxGlass'
 import { glassLensDataUrl } from '~/utils/glassLens'
+import { createGlassSceneRenderer } from '~/utils/glassSceneRenderer'
 
 const props = withDefaults(defineProps<{
   disabled?: boolean
   reduced?: boolean
   strength?: number
   frost?: number
-}>(), { strength: 28, frost: 0.6 })
+}>(), { strength: 28, frost: 0.25 })
 
 const surface = ref<HTMLElement>()
 const size = ref({ width: 0, height: 0 })
@@ -18,6 +19,7 @@ const mapUrl = ref<string>()
 const mode = ref<'svg' | 'firefox' | 'fallback'>('fallback')
 const active = ref(true)
 const sceneLayers = shallowRef<GlassSceneLayer[]>([])
+const sceneRenderer = createGlassSceneRenderer(layers => sceneLayers.value = layers)
 const reduceTransparency = ref(false)
 const reduceMotion = ref(false)
 const id = `bew-lens-${Math.random().toString(36).slice(2)}`
@@ -87,7 +89,7 @@ watch(enabled, (value) => {
   stopScene?.()
   stopScene = undefined
   if (value && mode.value === 'firefox' && surface.value)
-    stopScene = observeFirefoxGlass(surface.value, layers => sceneLayers.value = layers)
+    stopScene = observeFirefoxGlass(surface.value, sceneRenderer.render)
 })
 onActivated(() => active.value = true)
 onDeactivated(() => active.value = false)
@@ -181,8 +183,9 @@ onBeforeUnmount(() => {
     <span v-if="refracting && mode === 'firefox'" class="lens-scene-clip">
       <span class="lens-scene">
         <span
-          v-for="layer in sceneLayers" :key="layer.id" class="lens-source"
-          :style="{ backgroundImage: layer.backgroundImage, backgroundPosition: layer.backgroundPosition, backgroundSize: layer.backgroundSize, clipPath: layer.clipPath }"
+          v-for="layer in sceneLayers" :key="layer.id"
+          :ref="element => sceneRenderer.bind(layer.id, element as HTMLElement | null)"
+          class="lens-source"
         />
       </span>
     </span>

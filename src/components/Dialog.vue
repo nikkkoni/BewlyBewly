@@ -124,7 +124,7 @@ function handleConfirm() {
           <LiquidGlass
             v-if="frostedGlass"
             style="--bew-lens-tint: var(--bew-lens-panel-tint)"
-            :disabled="settings.disableFrostedGlass" :reduced="settings.reduceFrostedGlassBlur" :strength="24" :frost="5"
+            :disabled="settings.disableFrostedGlass" :reduced="settings.reduceFrostedGlassBlur" :strength="24" :frost="1.5"
           />
           <!-- loading masking -->
           <Transition name="fade">

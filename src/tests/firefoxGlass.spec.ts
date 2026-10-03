@@ -51,18 +51,20 @@ function scrollingScene() {
 
 describe('firefox live glass scenes', () => {
   it('keeps registered images alive and shares a scroll listener across surfaces', () => {
-    const { root, scroller, surface, stop, tick, register } = scrollingScene()
+    const { root, scroller, source, surface, stop, tick, register } = scrollingScene()
     const addListener = vi.spyOn(root, 'addEventListener')
     const secondStop = observeFirefoxGlass(surface, vi.fn())
     try {
       tick()
       expect(addListener.mock.calls.filter(([type]) => type === 'scroll')).toHaveLength(0)
       expect(register).toHaveBeenCalledTimes(1)
+      vi.mocked(source.getBoundingClientRect).mockClear()
       for (let i = 0; i < 8; i++) {
         scroller.dispatchEvent(new Event('scroll'))
         tick()
       }
       expect(register).toHaveBeenCalledTimes(1)
+      expect(source.getBoundingClientRect).toHaveBeenCalledTimes(8)
       expect(root.host.hasAttribute('data-glass-scrolling')).toBe(false)
       expect(surface.hasAttribute('data-glass-scrolling')).toBe(false)
     }

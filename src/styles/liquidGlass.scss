@@ -2,27 +2,27 @@
 :host,
 :root {
   --bew-radius: 16px;
-  --bew-content-opacity: 0.72;
-  --bew-lens-tint: rgb(255 255 255 / 10%);
-  --bew-lens-panel-tint: rgb(255 255 255 / 76%);
-  --bew-filter-glass-1: blur(12px) saturate(145%);
-  --bew-filter-glass-2: blur(18px) saturate(140%);
+  --bew-content-opacity: 0.58;
+  --bew-lens-tint: rgb(255 255 255 / 6%);
+  --bew-lens-panel-tint: rgb(255 255 255 / 52%);
+  --bew-filter-glass-1: blur(6px) saturate(135%);
+  --bew-filter-glass-2: blur(9px) saturate(130%);
   --bew-glass-border: rgb(255 255 255 / 72%);
-  --bew-glass-sheen: linear-gradient(135deg, rgb(255 255 255 / 46%), rgb(255 255 255 / 6%) 42%, rgb(255 255 255 / 20%));
+  --bew-glass-sheen: linear-gradient(135deg, rgb(255 255 255 / 28%), rgb(255 255 255 / 3%) 42%, rgb(255 255 255 / 12%));
   --bew-glass-ambient: radial-gradient(ellipse at 8% 8%, var(--bew-theme-color-20), transparent 52%),
     radial-gradient(ellipse at 90% 20%, rgb(180 166 244 / 19%), transparent 48%),
     radial-gradient(ellipse at 45% 95%, rgb(144 217 212 / 16%), transparent 50%);
   --bew-glass-card: color-mix(in srgb, var(--bew-content-solid) 58%, transparent);
   --bew-glass-hover: color-mix(in srgb, var(--bew-content-solid) 72%, transparent);
-  --bew-glass-panel: color-mix(in srgb, var(--bew-content-solid) 64%, transparent);
-  --bew-glass-control: color-mix(in srgb, var(--bew-content-solid) 48%, transparent);
+  --bew-glass-panel: color-mix(in srgb, var(--bew-content-solid) 46%, transparent);
+  --bew-glass-control: color-mix(in srgb, var(--bew-content-solid) 32%, transparent);
   --bew-glass-control-edge: inset 0 1px 0 rgb(255 255 255 / 78%), inset 0 -1px 0 rgb(38 60 92 / 10%);
   --bew-glass-rim: linear-gradient(
     145deg,
-    rgb(255 255 255 / 68%),
+    rgb(255 255 255 / 44%),
     transparent 38%,
     transparent 68%,
-    rgb(255 255 255 / 20%)
+    rgb(255 255 255 / 12%)
   );
   --bew-glass-motion: 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
   --bew-shadow-1: 0 4px 14px -6px rgb(38 60 92 / 14%);
@@ -37,8 +37,8 @@
 
 :host(.dark),
 :root.dark {
-  --bew-lens-tint: rgb(18 24 34 / 20%);
-  --bew-lens-panel-tint: rgb(18 22 30 / 80%);
+  --bew-lens-tint: rgb(18 24 34 / 12%);
+  --bew-lens-panel-tint: rgb(18 22 30 / 60%);
   --bew-glass-border: rgb(255 255 255 / 16%);
   --bew-glass-sheen: linear-gradient(135deg, rgb(255 255 255 / 10%), transparent 42%, rgb(255 255 255 / 3%));
   --bew-glass-control-edge: inset 0 1px 0 rgb(255 255 255 / 22%), inset 0 -1px 0 rgb(0 0 0 / 24%);
@@ -63,8 +63,8 @@
 // Both preferences may be enabled: disabling glass must always win.
 :host(.reduce-frosted-glass-blur:not(.disable-frosted-glass)),
 :root.reduce-frosted-glass-blur:not(.disable-frosted-glass) {
-  --bew-filter-glass-1: blur(10px) saturate(140%);
-  --bew-filter-glass-2: blur(16px) saturate(140%);
+  --bew-filter-glass-1: blur(3px) saturate(125%);
+  --bew-filter-glass-2: blur(5px) saturate(125%);
 }
 
 :host(.disable-frosted-glass),

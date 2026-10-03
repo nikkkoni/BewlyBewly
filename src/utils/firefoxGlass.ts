@@ -2,6 +2,7 @@
 // See https://developer.mozilla.org/docs/Web/API/Document/mozSetImageElement
 // and Meapri/liquid-glass-web (THIRD_PARTY_NOTICES.md).
 
+import { createGlassMeasurements, type GlassMeasurements, type GlassRect } from './glassGeometry'
 import { observeGlassScroll } from './glassMotion'
 
 interface FirefoxDocument extends Document {
@@ -14,15 +15,6 @@ export interface GlassSceneLayer {
   backgroundPosition: string
   backgroundSize: string
   clipPath: string
-}
-
-interface Rect {
-  left: number
-  top: number
-  right: number
-  bottom: number
-  width: number
-  height: number
 }
 
 const registrations = new WeakMap<Element, { id: string, users: number }>()
@@ -68,7 +60,7 @@ export function collectGlassSources(root: ParentNode): HTMLElement[] {
   return result
 }
 
-export function glassScenePlacement(source: Rect, glass: Rect, clip: Rect, width: number, height: number) {
+export function glassScenePlacement(source: GlassRect, glass: GlassRect, clip: GlassRect, width: number, height: number) {
   if (width <= 0 || height <= 0 || glass.width <= 0 || glass.height <= 0)
     return null
   const sx = glass.width / width
@@ -84,30 +76,6 @@ export function glassScenePlacement(source: Rect, glass: Rect, clip: Rect, width
     backgroundSize: `${source.width / sx}px ${source.height / sy}px`,
     clipPath: `inset(${(top - glass.top) / sy}px ${(glass.right - right) / sx}px ${(glass.bottom - bottom) / sy}px ${(left - glass.left) / sx}px)`,
   }
-}
-
-function sourceClip(element: HTMLElement): Rect {
-  let left = 0
-  let top = 0
-  let right = innerWidth
-  let bottom = innerHeight
-  for (let ancestor: HTMLElement | null = element; ancestor; ancestor = ancestor.parentElement) {
-    const style = getComputedStyle(ancestor)
-    if (style.visibility === 'hidden' || style.display === 'none' || style.opacity === '0')
-      return { left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0 }
-    if (ancestor === element)
-      continue
-    const rect = ancestor.getBoundingClientRect()
-    if (/hidden|clip|auto|scroll/.test(style.overflowX)) {
-      left = Math.max(left, rect.left)
-      right = Math.min(right, rect.right)
-    }
-    if (/hidden|clip|auto|scroll/.test(style.overflowY)) {
-      top = Math.max(top, rect.top)
-      bottom = Math.min(bottom, rect.bottom)
-    }
-  }
-  return { left, top, right, bottom, width: right - left, height: bottom - top }
 }
 
 export function observeFirefoxGlass(surface: HTMLElement, publish: (layers: GlassSceneLayer[]) => void) {
@@ -131,7 +99,7 @@ export function observeFirefoxGlass(surface: HTMLElement, publish: (layers: Glas
     owned.delete(element)
   }
 
-  function sync() {
+  function sync(measurements: GlassMeasurements = createGlassMeasurements()) {
     cancelAnimationFrame(frame)
     frame = 0
     if (stopped)
@@ -140,14 +108,16 @@ export function observeFirefoxGlass(surface: HTMLElement, publish: (layers: Glas
       sources = collectGlassSources(root)
       sourcesDirty = false
     }
-    const glass = surface.getBoundingClientRect()
+    const glass = measurements.rect(surface)
+    const width = surface.clientWidth
+    const height = surface.clientHeight
     const layers: GlassSceneLayer[] = []
     for (const element of owned.keys()) {
       if (!sources.includes(element))
         release(element)
     }
     for (const element of sources) {
-      const placement = glassScenePlacement(element.getBoundingClientRect(), glass, sourceClip(element), surface.clientWidth, surface.clientHeight)
+      const placement = glassScenePlacement(measurements.rect(element), glass, measurements.clip(element), width, height)
       if (!placement) {
         if (owned.has(element))
           release(element)
@@ -175,7 +145,7 @@ export function observeFirefoxGlass(surface: HTMLElement, publish: (layers: Glas
 
   function schedule() {
     if (!stopped && !frame)
-      frame = requestAnimationFrame(sync)
+      frame = requestAnimationFrame(() => sync())
   }
 
   function transition(event: Event) {

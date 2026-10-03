@@ -1,5 +1,7 @@
+import { createGlassMeasurements, type GlassMeasurements } from './glassGeometry'
+
 type GlassRoot = Document | ShadowRoot
-type Listener = () => void
+type Listener = (measurements: GlassMeasurements) => void
 
 const scopes = new WeakMap<GlassRoot, ReturnType<typeof createScope>>()
 
@@ -11,7 +13,8 @@ function createScope(root: GlassRoot) {
 
   function update() {
     frame = 0
-    listeners.forEach(listener => listener())
+    const measurements = createGlassMeasurements()
+    listeners.forEach(listener => listener(measurements))
   }
 
   function scroll() {

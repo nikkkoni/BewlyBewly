@@ -47,7 +47,7 @@ const list = computed(() => {
     border="1 $bew-border-color"
     flex="~ col"
   >
-    <LiquidGlass class="popup-material" :disabled="settings.disableFrostedGlass" :reduced="settings.reduceFrostedGlassBlur" :strength="20" :frost="4" />
+    <LiquidGlass class="popup-material" :disabled="settings.disableFrostedGlass" :reduced="settings.reduceFrostedGlassBlur" :strength="20" :frost="1" />
     <a
       v-for="(item, index) in list"
       :key="index"

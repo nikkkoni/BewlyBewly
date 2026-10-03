@@ -90,7 +90,7 @@ function handleClick(event: MouseEvent, item: { name: string, url: string, unrea
     border="1 $bew-border-color"
     flex="~ col"
   >
-    <LiquidGlass class="popup-material" :disabled="settings.disableFrostedGlass" :reduced="settings.reduceFrostedGlassBlur" :strength="20" :frost="4" />
+    <LiquidGlass class="popup-material" :disabled="settings.disableFrostedGlass" :reduced="settings.reduceFrostedGlassBlur" :strength="20" :frost="1" />
     <ALink
       v-for="item in list"
       :key="item.name"

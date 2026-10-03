@@ -147,7 +147,7 @@ function setCurrentTitle() {
           relative flex="~ gap-2 col" rounded="30px group-hover:25px" p-2
           scale="group-hover:105" duration-300 overflow-hidden antialiased transform-gpu
         >
-          <LiquidGlass class="popup-material" :disabled="settings.disableFrostedGlass" :reduced="settings.reduceFrostedGlassBlur" :strength="24" :frost="4" />
+          <LiquidGlass class="popup-material" :disabled="settings.disableFrostedGlass" :reduced="settings.reduceFrostedGlassBlur" :strength="24" :frost="1" />
           <li v-for="menuItem in settingsMenuItems" :key="menuItem.value">
             <a
               cursor-pointer w="40px group-hover:190px" h-40px
@@ -179,7 +179,7 @@ function setCurrentTitle() {
       >
         <LiquidGlass
           style="--bew-lens-tint: var(--bew-lens-panel-tint); --bew-shadow-2: var(--bew-shadow-4)"
-          :disabled="settings.disableFrostedGlass" :reduced="settings.reduceFrostedGlassBlur" :strength="24" :frost="5"
+          :disabled="settings.disableFrostedGlass" :reduced="settings.reduceFrostedGlassBlur" :strength="24" :frost="1.5"
         />
         <header
           flex justify-between items-center w-full h-80px
