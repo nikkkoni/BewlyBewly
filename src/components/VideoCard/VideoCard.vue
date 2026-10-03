@@ -237,8 +237,9 @@ provide('getVideoType', () => props.type!)
 
 <template>
   <div
-    class="bew-video-surface"
-    :style="{ contentVisibility }"
+    class="video-card-container"
+    min-w-0
+    :style="{ '--video-content-visibility': contentVisibility }"
     intrinsic-size-300px
     duration-300 ease-in-out
     rounded="$bew-radius"
@@ -541,24 +542,43 @@ provide('getVideoType', () => props.type!)
 </template>
 
 <style lang="scss" scoped>
-.bew-video-surface {
-  min-width: 0;
-  padding: 8px;
-  border: 1px solid var(--bew-glass-border);
-  border-radius: calc(var(--bew-radius) + 8px);
-  background-color: var(--bew-glass-card);
-  background-image: var(--bew-glass-sheen);
-  box-shadow: var(--bew-shadow-edge-glow-1), var(--bew-shadow-1);
-  transition:
-    background-color var(--bew-glass-motion),
-    box-shadow var(--bew-glass-motion),
-    border-color var(--bew-glass-motion);
+.video-card-container {
+  content-visibility: var(--video-content-visibility);
 
-  &:hover,
+  // Keep the highlight outside the content box visible during keyboard navigation.
   &:focus-within {
-    background-color: var(--bew-glass-hover);
-    border-color: var(--bew-theme-color-30);
-    box-shadow: var(--bew-shadow-edge-glow-1), var(--bew-shadow-2);
+    content-visibility: visible;
+  }
+}
+
+.video-card {
+  position: relative;
+  isolation: isolate;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -8px;
+    z-index: -1;
+    border-radius: calc(var(--bew-radius) + 8px);
+    background: var(--bew-fill-2);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 160ms ease;
+  }
+
+  &:focus-within::before {
+    opacity: 1;
+  }
+}
+
+@media (hover: hover) {
+  .video-card-container:hover {
+    content-visibility: visible;
+  }
+
+  .video-card:hover::before {
+    opacity: 1;
   }
 }
 

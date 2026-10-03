@@ -58,7 +58,10 @@ label {
 }
 
 input[type="range"] {
+  box-shadow: var(--bew-glass-control-edge);
   &::-webkit-slider-thumb {
+    background-image: var(--bew-glass-rim);
+    box-shadow: var(--bew-glass-control-edge), var(--bew-shadow-1);
     --uno: "appearance-none w-$b-thumb-height h-$b-thumb-height bg-white rounded-$b-thumb-height";
     --uno: "ring-$bew-border-color ring-2 cursor-pointer duration-300";
   }
@@ -68,6 +71,8 @@ input[type="range"] {
   }
 
   &::-moz-range-thumb {
+    background-image: var(--bew-glass-rim);
+    box-shadow: var(--bew-glass-control-edge), var(--bew-shadow-1);
     --uno: "appearance-none w-$b-thumb-height h-$b-thumb-height bg-white rounded-$b-thumb-height";
     --uno: "ring-$bew-border-color ring-2 cursor-pointer duration-300";
   }

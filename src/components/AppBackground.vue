@@ -86,7 +86,7 @@ function setAppWallpaperMaskingOpacity() {
 </script>
 
 <template>
-  <div>
+  <div data-glass-scene="background" pos="absolute inset-0" pointer-events-none>
     <!-- linear gradient background -->
     <Transition name="fade">
       <div

@@ -63,7 +63,7 @@ function handleClick(evt: MouseEvent) {
   --b-button-height: 35px;
   --b-button-border-width: 0px;
   --b-button-border-color: var(--bew-border-color);
-  --b-button-shadow: none;
+  --b-button-shadow: var(--bew-glass-control-edge);
   --b-button-shadow-hover: var(--b-button-shadow);
   --b-button-shadow-active: var(--b-button-shadow);
 
@@ -82,8 +82,8 @@ function handleClick(evt: MouseEvent) {
   &--type-primary:not(.b-button--custom-color) {
     --b-button-border-width: 1px;
     --b-button-border-color: var(--bew-glass-border);
-    --b-button-shadow: var(--bew-shadow-edge-glow-1), var(--bew-shadow-1);
-    --b-button-shadow-hover: var(--bew-shadow-edge-glow-1), var(--bew-shadow-2);
+    --b-button-shadow: var(--bew-glass-control-edge);
+    --b-button-shadow-hover: var(--bew-glass-control-edge);
     background-image: var(--bew-glass-sheen);
   }
 
@@ -100,12 +100,16 @@ function handleClick(evt: MouseEvent) {
   }
 
   &--type-secondary {
-    --b-button-color: var(--bew-fill-1);
-    --b-button-color-hover: var(--bew-fill-2);
+    --b-button-color: var(--bew-glass-control);
+    --b-button-color-hover: var(--bew-glass-hover);
     --b-button-text-color: var(--bew-text-1);
+    --b-button-border-width: 1px;
+    --b-button-border-color: var(--bew-glass-border);
+    background-image: var(--bew-glass-sheen);
   }
 
   &--type-tertiary {
+    --b-button-shadow: none;
     --b-button-color: transparent;
     --b-button-color-hover: var(--bew-fill-2);
     --b-button-text-color: var(--bew-text-1);

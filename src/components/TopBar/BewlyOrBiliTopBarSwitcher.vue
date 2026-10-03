@@ -18,9 +18,8 @@ function toggleBewlyTopBar() {
     p="t-30px"
   >
     <button
-      style="backdrop-filter: var(--bew-filter-glass-1);"
       pos="absolute"
-      class="opacity-0 group-hover:opacity-100"
+      class="top-bar-switch bew-glass-control opacity-0 group-hover:opacity-100"
       transform="translate-y--100% group-hover:translate-y-0 hover:translate-y-0"
       flex="~ items-center gap-2"
       text="$bew-text-2 sm"

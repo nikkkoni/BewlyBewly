@@ -128,6 +128,10 @@ settings:
 
   disable_frosted_glass: 閂咗毛玻璃效果
   reduce_frosted_glass_blur: 降低毛玻璃模糊強度
+  firefox_prefer_scroll_sync: Firefox 優先捲動同步
+  firefox_webgl: Firefox WebGL 折射（試用）
+  firefox_webgl_desc: 用共用 GPU 渲染器畫玻璃邊緣，中間保留原生背景。捲動時重用背景紋理；部分動態內容可能更新得慢啲。關閉可以比較原本嘅曲面折射。
+  firefox_prefer_scroll_sync_desc: 預設用連續曲面折射同輕微色散。如果捲動嗰陣玻璃入面嘅內容跟唔切，可以開啟呢項，改用同捲動同步嘅簡化折射。
   disable_shadow: 閂咗陰影
 
   link_opening_behavior_opt:

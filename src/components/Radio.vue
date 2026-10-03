@@ -31,6 +31,13 @@ label {
 
 input[type="checkbox"] + span::after {
   box-sizing: border-box;
+  background-image: var(--bew-glass-rim);
+  box-shadow: var(--bew-glass-control-edge), var(--bew-shadow-1);
+}
+
+input[type="checkbox"] + span {
+  background-image: var(--bew-glass-sheen);
+  box-shadow: var(--bew-glass-control-edge);
 }
 
 input[type="checkbox"] {

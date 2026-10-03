@@ -1,6 +1,8 @@
 <script setup>
 import { useI18n } from 'vue-i18n'
 
+import { settings } from '~/logic'
+
 const { t } = useI18n()
 
 const list = computed(() => {
@@ -36,7 +38,7 @@ const list = computed(() => {
 
 <template>
   <div
-    style="backdrop-filter: var(--bew-filter-glass-1);"
+    class="bew-glass-surface bew-refracting-popup"
     bg="$bew-elevated"
     rounded="$bew-radius"
     p="4"
@@ -45,6 +47,7 @@ const list = computed(() => {
     border="1 $bew-border-color"
     flex="~ col"
   >
+    <LiquidGlass class="popup-material" :disabled="settings.disableFrostedGlass" :reduced="settings.reduceFrostedGlassBlur" :strength="20" :frost="1" />
     <a
       v-for="(item, index) in list"
       :key="index"

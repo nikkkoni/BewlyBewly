@@ -60,7 +60,11 @@ const tooltipRef = ref(null)
     }
 
     &--type-default {
-      --uno: "text-white dark:text-black bg-black dark:bg-white";
+      color: var(--bew-text-1);
+      background-color: var(--bew-glass-panel);
+      background-image: var(--bew-glass-rim);
+      border: 1px solid var(--bew-glass-border);
+      box-shadow: var(--bew-glass-control-edge), var(--bew-shadow-1);
     }
 
     &--type-dark {
@@ -74,6 +78,10 @@ const tooltipRef = ref(null)
 
   &:hover .b-tooltip {
     --uno: "opacity-100";
+  }
+
+  &:hover .b-tooltip--type-default {
+    backdrop-filter: var(--bew-filter-glass-1);
   }
 }
 </style>

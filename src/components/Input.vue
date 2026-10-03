@@ -40,7 +40,7 @@ defineExpose({ focus })
 
 <template>
   <div
-    class="bew-input"
+    class="bew-input bew-glass-control"
     :style="{ height, padding }"
     focus-within:ring="2px $bew-theme-color"
     p="x-4"

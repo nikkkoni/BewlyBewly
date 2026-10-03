@@ -55,7 +55,7 @@ const otherLinks = computed(() => [
       x: 'hidden',
       y: 'scroll',
     }"
-    style="backdrop-filter: var(--bew-filter-glass-1);"
+    class="bew-glass-surface"
     h="[calc(100vh-100px)]" max-h="445px"
     w="[calc(100vw-100px)]" max-w="fit"
     shadow="[var(--bew-shadow-3),var(--bew-shadow-edge-glow-1)]"

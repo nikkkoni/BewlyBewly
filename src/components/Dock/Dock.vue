@@ -493,10 +493,12 @@ const dockTransformStyle = computed((): { transform: string, transformOrigin: st
     --uno: "transform active:important-scale-90 hover:scale-110";
     --uno: "lg:w-45px w-35px lg:h-45px h-35px";
     --uno: "grid place-items-center";
-    --uno: "bg-$bew-elevated hover:bg-$bew-content-hover";
+    --uno: "bg-$bew-glass-panel hover:bg-$bew-glass-hover";
     --uno: "rounded-full shadow-$bew-shadow-2 border-1 border-$bew-border-color";
 
-    backdrop-filter: var(--bew-filter-glass-1);
+    // Small utility buttons keep tint and rim without another backdrop pass.
+    // Filtering this button adds a costly moving-feed repaint in Firefox.
+    background-image: var(--bew-glass-rim);
     transition:
       transform 300ms cubic-bezier(0.34, 2, 0.6, 1),
       background 300ms ease,

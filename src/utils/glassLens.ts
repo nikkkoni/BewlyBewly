@@ -1,6 +1,8 @@
 // Rounded-rectangle distance fields and SVG displacement follow the approach in
 // shuding/liquid-glass and rdev/liquid-glass-react. See THIRD_PARTY_NOTICES.md.
 
+import { createCurvedGlassLensMap } from './curvedGlassLens'
+
 export interface GlassLensMap {
   width: number
   height: number
@@ -59,21 +61,29 @@ export function createGlassLensMap(width: number, height: number, cornerRadius: 
 
 const maps = new Map<string, string>()
 
-export function glassLensDataUrl(width: number, height: number, radius: number): string | undefined {
-  const key = `${width}:${height}:${radius}`
+export function glassLensDataUrl(width: number, height: number, radius: number, curved = false): string | undefined {
+  const key = `${width}:${height}:${radius}:${curved}`
   const cached = maps.get(key)
   if (cached)
     return cached
 
   const canvas = document.createElement('canvas')
-  const context = canvas.getContext('2d')
+  const context = canvas.getContext('2d', { willReadFrequently: true })
   if (!context)
     return undefined
 
-  const map = createGlassLensMap(width, height, radius)
+  const map = curved ? createCurvedGlassLensMap(width, height, radius) : createGlassLensMap(width, height, radius)
   canvas.width = map.width
   canvas.height = map.height
-  context.putImageData(new ImageData(map.pixels, map.width, map.height), 0, 0)
+  // Create the buffer in the canvas's realm. Firefox content scripts cannot
+  // pass an ImageData backed by their isolated world's typed array to the page.
+  const image = context.createImageData(map.width, map.height)
+  // Copy numbers individually; passing a foreign typed array to .set() also
+  // crosses Firefox's Xray boundary and is rejected in a content script.
+  const data = image.data
+  for (let i = 0; i < map.pixels.length; i++)
+    data[i] = map.pixels[i]
+  context.putImageData(image, 0, 0)
   const url = canvas.toDataURL()
   // A resize must not accumulate an unbounded collection of raster maps.
   if (maps.size >= 12)

@@ -70,18 +70,18 @@ function toggleHideSidebar(hide: boolean) {
 
     <div
       ref="sideBarContentRef"
-      class="sidebar-content"
+      class="sidebar-content bew-glass-surface"
       :class="{
         hover: sideBarContentHover,
       }"
       flex="~ gap-2 col justify-center items-center"
       pointer-events-auto
+      p-2 rounded-30px
       duration-300
     >
       <Tooltip :content="isDark ? $t('dock.dark_mode') : $t('dock.light_mode')" placement="left">
         <Button
           class="ctrl-btn"
-          style="backdrop-filter: var(--bew-filter-glass-1);"
           center size="small" round
           @click="toggleDark"
           @mouseenter="hoveringDockItem.themeMode = true"
@@ -104,7 +104,6 @@ function toggleHideSidebar(hide: boolean) {
       <Tooltip :content="$t('dock.settings')" placement="left">
         <Button
           class="ctrl-btn group"
-          style="backdrop-filter: var(--bew-filter-glass-1);"
           center size="small" round
           @click="emit('settings-visibility-change')"
         >
@@ -125,11 +124,11 @@ function toggleHideSidebar(hide: boolean) {
   --b-button-width: 40px;
   --b-button-height: 40px;
   --b-button-border-width: 1px;
-  --b-button-color: var(--bew-elevated);
-  --b-button-color-hover: var(--bew-elevated-hover);
-  --b-button-shadow: var(--bew-shadow-1);
-  --b-button-shadow-hover: var(--bew-shadow-2);
-  --b-button-shadow-active: var(--bew-shadow-1);
+  --b-button-color: var(--bew-glass-control);
+  --b-button-color-hover: var(--bew-glass-hover);
+  --b-button-shadow: var(--bew-glass-control-edge);
+  --b-button-shadow-hover: var(--bew-glass-control-edge);
+  --b-button-shadow-active: var(--bew-glass-control-edge);
 
   svg {
     --uno: "w-20px h-20px shrink-0";

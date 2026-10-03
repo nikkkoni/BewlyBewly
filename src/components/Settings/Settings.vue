@@ -140,26 +140,14 @@ function setCurrentTitle() {
         shrink-0 p="x-4" pos="absolute xl:left--84px left--44px" z-2
       >
         <ul
+          class="settings-navigation bew-glass-surface bew-refracting-popup"
           style="
             box-shadow: var(--bew-shadow-4);
           "
           relative flex="~ gap-2 col" rounded="30px group-hover:25px" p-2
-          bg="$bew-content-alt group-hover:$bew-elevated dark:$bew-elevated dark-group-hover:$bew-elevated"
           scale="group-hover:105" duration-300 overflow-hidden antialiased transform-gpu
         >
-          <!-- frosted glass background -->
-          <!-- https://github.com/BewlyBewly/BewlyBewly/issues/1162 -->
-          <div
-            style="
-              box-shadow: var(--bew-shadow-edge-glow-2);
-              backdrop-filter: var(--bew-filter-glass-2);
-            "
-            pos="absolute top-0 left-0" z--1
-            w-full h-full pointer-events-none
-            border="1 $bew-border-color" transform-gpu
-            rounded-inherit duration-inherit
-          />
-
+          <LiquidGlass class="popup-material" :disabled="settings.disableFrostedGlass" :reduced="settings.reduceFrostedGlassBlur" :strength="24" :frost="1" />
           <li v-for="menuItem in settingsMenuItems" :key="menuItem.value">
             <a
               cursor-pointer w="40px group-hover:190px" h-40px
@@ -191,7 +179,7 @@ function setCurrentTitle() {
       >
         <LiquidGlass
           style="--bew-lens-tint: var(--bew-lens-panel-tint); --bew-shadow-2: var(--bew-shadow-4)"
-          :disabled="settings.disableFrostedGlass" :reduced="settings.reduceFrostedGlassBlur" :strength="24" :frost="5"
+          :disabled="settings.disableFrostedGlass" :reduced="settings.reduceFrostedGlassBlur" :strength="24" :frost="1.5"
         />
         <header
           flex justify-between items-center w-full h-80px
@@ -215,10 +203,7 @@ function setCurrentTitle() {
             {{ title }}
           </div>
           <div
-            style="
-              backdrop-filter: var(--bew-filter-glass-1);
-              box-shadow: var(--bew-shadow-edge-glow-1), var(--bew-shadow-2);
-            "
+            class="bew-glass-control"
             text="!16px hover:$bew-theme-color" w="32px" h="32px"
             flex="~ items-center justify-center shrink-0"
             bg="$bew-elevated dark:$bew-fill-1 hover:$bew-theme-color-30"
