@@ -10,6 +10,7 @@
 
 - [shuding/liquid-glass](https://github.com/shuding/liquid-glass)：Canvas 生成位移贴图，通过 SVG `feDisplacementMap` 对背景像素位移。
 - [rdev/liquid-glass-react](https://github.com/rdev/liquid-glass-react)：边缘折射、RGB 色散，以及独立于前景内容的玻璃层。
+- [Meapri/liquid-glass-web](https://github.com/Meapri/liquid-glass-web)：Firefox 使用实时元素图像作为普通 SVG 滤镜的输入。
 - [ybouane/liquidglass](https://github.com/ybouane/liquidglass)：研究了其 WebGL 折射、光照及页面内容捕获方案；本扩展没有采用它的页面截图与持续渲染循环。
 
 采用的 MIT 参考实现及完整许可见 [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)。未引入 React 或新的运行时依赖。
@@ -21,12 +22,15 @@
 | 环境 / 设置 | 表现 |
 | --- | --- |
 | 桌面 Chrome / Edge 等 Chromium 浏览器 | SVG 背景折射、轻微色散和高光 |
-| Firefox / Safari / iOS 浏览器 | 磨砂玻璃回退，**没有背景折射** |
+| 桌面 Firefox | 使用 `-moz-element()` 实时绘制背景，再通过普通 SVG 滤镜折射 |
+| Safari / iOS 浏览器 | 磨砂玻璃回退，**没有背景折射** |
 | 禁用毛玻璃 / 系统减少透明度 | 实色表面，停止折射 |
 | 降低毛玻璃模糊强度 | 降低模糊和折射幅度 |
 | 系统减少动态效果 | 停止指针高光跟随，缩短界面过渡 |
 
-这是一种 Web 上的折射近似实现。CSS 的 `url()` 语法支持不代表浏览器能处理 SVG 背景滤镜，因此使用明确的 Chromium 路径和回退，不把普通模糊称为折射。
+系统减少透明度仅在浏览器提供对应媒体查询时生效。Firefox 当前仍将此查询列为[默认关闭的实验功能](https://developer.mozilla.org/en-US/docs/Mozilla/Firefox/Experimental_features#prefers-reduced-transparency_media_feature)；可以随时使用扩展内的“禁用毛玻璃效果”切换到实色界面。
+
+这是一种 Web 上的折射近似实现。CSS 的 `url()` 语法支持不代表浏览器能处理 SVG 背景滤镜，因此 Chromium 和 Firefox 使用不同的渲染路径。Firefox 不依赖被忽略的 SVG `backdrop-filter`，缺少实时元素图像能力或可用背景时回退到磨砂。
 
 浅色和深色模式分别调整玻璃着色。自定义壁纸、主题色、禁用阴影设置继续生效；未设置壁纸时显示主题色渐变。
 
@@ -34,9 +38,20 @@
 
 - `src/components/LiquidGlass.vue`：装饰性的玻璃层、SVG 三通道位移管线、尺寸观察、指针高光与资源清理。滤镜只处理背景层，前景不参与位移。
 - `src/utils/glassLens.ts`：按控件实际宽高与圆角生成距离场；曲面边缘向内采样，中心区域保持中性。
+- `src/utils/firefoxGlass.ts`：背景选择、Shadow DOM 图像注册、滚动位置和裁剪同步，以及引用计数与注销。
 - `src/styles/liquidGlass.scss`：浅色 / 深色材质、性能与辅助显示回退。
 
 贴图只在尺寸或启用状态改变时生成，并限制分辨率和缓存数量。滚动由浏览器合成真实背景，不截图、不读取远程图片像素，也不逐帧重新生成贴图。
+
+### Firefox 移植
+
+Firefox 用 `document.mozSetImageElement()` 显式注册扩展 Shadow DOM 内的背景，然后将 `-moz-element()` 作为独立装饰层的背景图。普通 `filter: url(...)` 负责折射，前景文字和按钮不进入滤镜。
+
+背景包括扩展壁纸与页面内容。遇到玻璃控件时拆分绘制区域，排除玻璃自身和其前景，防止循环引用。原生 Bilibili 页面使用扩展宿主之外的页面区域。滚动、尺寸变化、页面切换和控件过渡会更新坐标，保留滚动容器的裁剪；实时元素图像由 Firefox 自动更新。
+
+多个玻璃表面共享注册图像，禁用、卸载或组件缓存停用时释放引用和监听器。单个表面最多使用 24 个绘制区域。Firefox 扩展中的 Canvas 缓冲区采用逐数值复制，避免隔离环境对跨域 JavaScript 对象的访问错误，无需新增权限。
+
+Firefox 这条路线重绘所选页面区域，而非读取浏览器完整合成结果；复杂原生页面的叠层、跨域 iframe 或第三方覆盖层可能与 Chromium 不完全一致。无法取得有效背景时保留磨砂回退。导航栏保持单层，并提高填充强度以保证滚动后文字可读。
 
 ## 验证
 
@@ -44,8 +59,10 @@
 
 镜头数学测试覆盖边缘位移、中心中性、对称性、宽胶囊比例、贴图内存上限和非法尺寸。浏览器验证使用实际扩展的 Shadow DOM：在同一控件后放置网格，仅切换位移强度，比较截图以确认边缘像素确实发生形变。
 
-同时检查浅色 / 深色、搜索、设置、390px / 768px / 1440px 窗口、性能开关和系统减少透明度偏好。Firefox / Safari 的回退仍需在对应真实浏览器上验证。
+Firefox 157.0 已在真实扩展中检查浅色 / 深色、搜索、设置、对话框、滚动对齐、页面切换、原生页面、390px / 768px / 1440px 窗口及性能开关。相同网格的位移开关对照确认背景发生形变，改变背景颜色可验证图像实时更新。单元测试还覆盖循环引用排除、坐标裁剪、缩放和共享图像释放。Safari 仍需在对应真实浏览器上验证。
 
 ## 本地安装
 
 解压扩展包，在 Chrome 的 `chrome://extensions` 或 Edge 的 `edge://extensions` 打开开发者模式，选择“加载已解压的扩展程序”，选中包含 `manifest.json` 的文件夹，然后刷新 Bilibili。
+
+Firefox 使用独立构建：`pnpm build-firefox`，输出在 `extension-firefox/`。本地未签名包解压后，打开 `about:debugging#/runtime/this-firefox` → **临时载入附加组件** → 选择 `manifest.json`。临时扩展在重启 Firefox 后需要重新载入；常规持久安装需要 Mozilla 签名。

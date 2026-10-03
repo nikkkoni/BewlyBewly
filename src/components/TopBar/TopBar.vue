@@ -492,7 +492,7 @@ defineExpose({
       :class="{ 'hide': hideTopBar, 'force-white-icon': forceWhiteIcon }"
       :style="{ position: isTopBarFixed ? 'fixed' : 'absolute' }"
     >
-      <LiquidGlass class="top-bar-material" :disabled="settings.disableFrostedGlass" :reduced="settings.reduceFrostedGlassBlur" :strength="18" />
+      <LiquidGlass class="top-bar-material" :disabled="settings.disableFrostedGlass" :reduced="settings.reduceFrostedGlassBlur" :strength="18" :frost="3" />
       <main
         max-w="$bew-page-max-width"
         flex="~ justify-between items-center gap-4"
@@ -917,6 +917,7 @@ defineExpose({
 <style lang="scss" scoped>
 .liquid-top-bar {
   .top-bar-material {
+    --bew-lens-tint: var(--bew-lens-panel-tint);
     inset: 0;
     border-radius: 0;
     box-shadow: none;

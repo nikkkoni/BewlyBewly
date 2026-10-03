@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onActivated, onBeforeUnmount, onDeactivated, onMounted, ref, shallowRef, watch } from 'vue'
 
+import type { GlassSceneLayer } from '~/utils/firefoxGlass'
+import { observeFirefoxGlass, supportsFirefoxGlass } from '~/utils/firefoxGlass'
 import { glassLensDataUrl } from '~/utils/glassLens'
 
 const props = withDefaults(defineProps<{
@@ -13,12 +15,14 @@ const props = withDefaults(defineProps<{
 const surface = ref<HTMLElement>()
 const size = ref({ width: 0, height: 0 })
 const mapUrl = ref<string>()
-const supported = ref(false)
+const mode = ref<'svg' | 'firefox' | 'fallback'>('fallback')
+const active = ref(true)
+const sceneLayers = shallowRef<GlassSceneLayer[]>([])
 const reduceTransparency = ref(false)
 const reduceMotion = ref(false)
 const id = `bew-lens-${Math.random().toString(36).slice(2)}`
-const enabled = computed(() => supported.value && !props.disabled && !reduceTransparency.value)
-const refracting = computed(() => enabled.value && !!mapUrl.value)
+const enabled = computed(() => active.value && mode.value !== 'fallback' && !props.disabled && !reduceTransparency.value)
+const refracting = computed(() => enabled.value && !!mapUrl.value && (mode.value !== 'firefox' || sceneLayers.value.length > 0))
 const strength = computed(() => props.reduced ? props.strength * 0.5 : props.strength)
 let resizeObserver: ResizeObserver | undefined
 let parent: HTMLElement | null = null
@@ -27,6 +31,7 @@ let pointerFrame = 0
 let pointerX = 50
 let pointerY = 0
 const cleanups: (() => void)[] = []
+let stopScene: (() => void) | undefined
 
 function updateMap() {
   resizeFrame = 0
@@ -45,7 +50,7 @@ function updateMap() {
   }
   catch {
     // Canvas or SVG restrictions must leave a usable CSS surface.
-    supported.value = false
+    mode.value = 'fallback'
   }
 }
 
@@ -77,13 +82,22 @@ function resetHighlight() {
   updateHighlight()
 }
 
-watch(enabled, queueResize)
+watch(enabled, (value) => {
+  queueResize()
+  stopScene?.()
+  stopScene = undefined
+  if (value && mode.value === 'firefox' && surface.value)
+    stopScene = observeFirefoxGlass(surface.value, layers => sceneLayers.value = layers)
+})
+onActivated(() => active.value = true)
+onDeactivated(() => active.value = false)
 onMounted(() => {
-  // Parsing url() is not proof of SVG backdrop support. Use the proven Chromium
-  // path; Firefox, Safari and iOS keep the explicit CSS fallback.
-  supported.value = /(?:Chrome|Chromium|Edg)\//.test(navigator.userAgent)
-  && !/(?:EdgiOS|CriOS)\//.test(navigator.userAgent)
-  && CSS.supports('backdrop-filter', 'url("#lens")')
+  // Firefox supports ordinary SVG filters on a live -moz-element() image,
+  // but not this SVG backdrop-filter chain. Safari keeps the CSS fallback.
+  if (supportsFirefoxGlass())
+    mode.value = 'firefox'
+  else if (/(?:Chrome|Chromium|Edg)\//.test(navigator.userAgent) && !/(?:EdgiOS|CriOS)\//.test(navigator.userAgent) && CSS.supports('backdrop-filter', 'url("#lens")'))
+    mode.value = 'svg'
 
   for (const [query, state] of [
     ['(prefers-reduced-transparency: reduce)', reduceTransparency],
@@ -108,6 +122,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  stopScene?.()
   resizeObserver?.disconnect()
   cancelAnimationFrame(resizeFrame)
   cancelAnimationFrame(pointerFrame)
@@ -121,8 +136,8 @@ onBeforeUnmount(() => {
   <div
     ref="surface"
     class="bew-liquid-glass"
-    :class="{ 'is-refracting': refracting, 'is-opaque': disabled || reduceTransparency }"
-    :data-refraction="refracting ? 'svg' : 'fallback'"
+    :class="{ 'is-refracting': refracting, 'is-firefox': refracting && mode === 'firefox', 'is-opaque': disabled || reduceTransparency }"
+    :data-refraction="refracting ? mode : 'fallback'"
     :style="{ '--lens-filter': refracting ? `url(#${id}) saturate(1.2)` : undefined }"
     aria-hidden="true"
   >
@@ -157,6 +172,14 @@ onBeforeUnmount(() => {
         </filter>
       </defs>
     </svg>
+    <span v-if="refracting && mode === 'firefox'" class="lens-scene-clip">
+      <span class="lens-scene">
+        <span
+          v-for="layer in sceneLayers" :key="layer.id" class="lens-source"
+          :style="{ backgroundImage: layer.backgroundImage, backgroundPosition: layer.backgroundPosition, backgroundSize: layer.backgroundSize, clipPath: layer.clipPath }"
+        />
+      </span>
+    </span>
     <span class="lens-backdrop" />
     <span class="lens-rim" />
   </div>
@@ -176,10 +199,28 @@ onBeforeUnmount(() => {
   }
 
   .lens-backdrop,
-  .lens-rim {
+  .lens-rim,
+  .lens-scene-clip,
+  .lens-scene,
+  .lens-source {
     position: absolute;
     inset: 0;
     border-radius: inherit;
+  }
+
+  .lens-scene-clip {
+    overflow: hidden;
+  }
+
+  .lens-scene {
+    background: var(--bew-bg);
+    filter: var(--lens-filter);
+    border-radius: 0;
+  }
+
+  .lens-source {
+    background-repeat: no-repeat;
+    border-radius: 0;
   }
 
   .lens-backdrop {
@@ -225,6 +266,11 @@ onBeforeUnmount(() => {
       border-color: var(--bew-border-color);
       box-shadow: none;
     }
+  }
+
+  &.is-firefox .lens-backdrop {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
 }
 </style>

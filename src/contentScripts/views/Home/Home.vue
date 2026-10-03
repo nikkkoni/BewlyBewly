@@ -278,6 +278,7 @@ function toggleTabContentLoading(loading: boolean) {
 
 <style scoped lang="scss">
 .bew-liquid-tabs {
+  --bew-lens-tint: var(--bew-lens-panel-tint);
   position: relative;
 
   > :not(.bew-liquid-glass) {

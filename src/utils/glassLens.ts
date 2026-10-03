@@ -73,7 +73,15 @@ export function glassLensDataUrl(width: number, height: number, radius: number):
   const map = createGlassLensMap(width, height, radius)
   canvas.width = map.width
   canvas.height = map.height
-  context.putImageData(new ImageData(map.pixels, map.width, map.height), 0, 0)
+  // Create the buffer in the canvas's realm. Firefox content scripts cannot
+  // pass an ImageData backed by their isolated world's typed array to the page.
+  const image = context.createImageData(map.width, map.height)
+  // Copy numbers individually; passing a foreign typed array to .set() also
+  // crosses Firefox's Xray boundary and is rejected in a content script.
+  const data = image.data
+  for (let i = 0; i < map.pixels.length; i++)
+    data[i] = map.pixels[i]
+  context.putImageData(image, 0, 0)
   const url = canvas.toDataURL()
   // A resize must not accumulate an unbounded collection of raster maps.
   if (maps.size >= 12)
