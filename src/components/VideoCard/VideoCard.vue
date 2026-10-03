@@ -237,8 +237,9 @@ provide('getVideoType', () => props.type!)
 
 <template>
   <div
+    class="video-card-container"
     min-w-0
-    :style="{ contentVisibility }"
+    :style="{ '--video-content-visibility': contentVisibility }"
     intrinsic-size-300px
     duration-300 ease-in-out
     rounded="$bew-radius"
@@ -541,6 +542,46 @@ provide('getVideoType', () => props.type!)
 </template>
 
 <style lang="scss" scoped>
+.video-card-container {
+  content-visibility: var(--video-content-visibility);
+
+  // Keep the highlight outside the content box visible during keyboard navigation.
+  &:focus-within {
+    content-visibility: visible;
+  }
+}
+
+.video-card {
+  position: relative;
+  isolation: isolate;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -8px;
+    z-index: -1;
+    border-radius: calc(var(--bew-radius) + 8px);
+    background: var(--bew-fill-2);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 160ms ease;
+  }
+
+  &:focus-within::before {
+    opacity: 1;
+  }
+}
+
+@media (hover: hover) {
+  .video-card-container:hover {
+    content-visibility: visible;
+  }
+
+  .video-card:hover::before {
+    opacity: 1;
+  }
+}
+
 .horizontal-card-cover {
   --uno: "xl:w-280px lg:w-250px md:w-200px w-200px";
 }
