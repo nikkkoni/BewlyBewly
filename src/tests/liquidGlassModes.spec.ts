@@ -22,7 +22,7 @@ vi.mock('../utils/glassLens', () => ({
 
 const frames = new Map<number, FrameRequestCallback>()
 const mediaQueries = new Map<string, EventTarget & { matches: boolean }>()
-const sceneStops: ReturnType<typeof vi.fn>[] = []
+const sceneStops: (() => void)[] = []
 let app: ReturnType<typeof createApp> | undefined
 let host: HTMLDivElement
 let nextFrame = 0
